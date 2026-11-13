@@ -364,8 +364,9 @@ const CONFIG = {
 /* Grupos de adicionais/opções */
 const GROUPS = {
   pastel: {title:"Adicionais", type:"multi", opts:[["Catupiry",5],["Cream cheese",5],["Cheddar",5],["Milho",2]]},
-  lanche: {title:"Adicionais", type:"multi", opts:[["Milho",2],["Barbecue",2],["Cebola caramelizada",2],["Batata palha",2],["Ovo",3],["Salsicha",3],["Presunto",3],["Carne simples",6],["Carne artesanal",12],["Filé mignon 100g",12],["Filé de frango 100g",10],["Bacon",6],["Calabresa",6],["Catupiry",6],["Cream cheese",6],["Cheddar",6],["Queijo coalho",6],["Mussarela",4]]},
-  confeito: {title:"Confeito", type:"single", opts:[["Sem confeito",0],["Ovomaltine",0],["Castanha de caju triturada",0],["Amendoim triturado",0],["Granulado",0],["Granulado colorido",0],["Coco ralado",0],["Leite em pó",0],["Farofa de paçoca",0],["Chocobol",0]]},
+  lanche: {title:"Adicionais", type:"multi", opts:[["Milho",2],["Barbecue",2],["Cebola caramelizada",2],["Batata palha",2],["Ovo",3],["Salsicha",3],["Presunto",3],["Carne simples",6],["Carne artesanal",12],["Filé mignon 100g",12],["Filé de frango 100g",10],["Bacon",6],["Calabresa",6],["Catupiry",5],["Cream cheese",5],["Cheddar",5],["Queijo coalho",6],["Mussarela",4]]},
+  confeito: {title:"Confeito", type:"single", none:true, opts:[["Sem confeito",0],["Ovomaltine",0],["Castanha de caju triturada",0],["Amendoim triturado",0],["Granulado",0],["Granulado colorido",0],["Coco ralado",0],["Leite em pó",0],["Farofa de paçoca",0],["Chocobol",0]]},
+  confeitoDL: {title:"Confeito", type:"single", opts:[["Amendoim triturado",0],["Farofa de paçoca",0]]},
   refri: {title:"Sabor", type:"text", ph:"Qual refrigerante? (ex.: Coca-Cola, Guaraná)"},
   suco: {title:"Sabor", type:"text", ph:"Qual sabor?"}
 };
@@ -378,7 +379,7 @@ const MENU = [
   ["Frango Especial",20,"Frango, bacon, calabresa e queijo"],["Mistão",14,"Carne e frango"],["Mistão Catupiry",19],["Mistão Cheddar",19],
   ["Carne",14],["Carne Queijo",16],["Carne, Queijo e Milho",18],["Carne Catupiry",19],["Carne Cheddar",19],
   ["Carne Especial",20,"Carne, bacon, calabresa e queijo"],["Carne Seca",18,"Carne do sol e queijo"],
-  ["Escondidinho",18,"Purê de aipim, carne do sol e queijo"],["Oxente",20,"Aipim, banana da terra na manteiga, carne seca e queijo"],
+  ["Escondidinho",18,"Purê de aipim, carne do sol e queijo"],["Oxente",20,"Pirão, banana da terra na manteiga, carne seca e queijo"],
   ["Bacon Queijo",16],["Bacon, Queijo e Milho",18],["Calabresa Queijo",16],["Calabresa, Queijo e Milho",18],["Atum Queijo",16],
   ["Portuguesa",18,"Presunto, queijo, milho, ervilha e azeitona"],["Pastello",18,"Carne de carneiro e queijo"],
   ["Pepperoni",18,"Pepperoni e queijo"],["Strogonoff",18,"Strogonoff de frango e queijo"],["Camarão",24],["Costela c/ Cream Cheese",20]
@@ -398,32 +399,86 @@ const MENU = [
  {id:"batata", t:"Batata Frita", sub:"200g", tag:"Batata", items:[
   ["Batata Frita",12],["Batata com Cheddar",15],["Batata com Catupiry",15]
  ]},
- {id:"churros", t:"Churros", tag:"Churros", g:"confeito", items:[
-  ["Beijinho",10,"Recheio e cobertura de beijinho, com coco ralado"],["Chocolate",10,"Recheio e cobertura de brigadeiro"],
-  ["Doce de Leite",10,"Recheio e cobertura de doce de leite"],["Moranguinho",10],["Ninho Cremoso",10],
-  ["Trio",15,"Recheio de doce de leite, cobertura dupla de beijinho e brigadeiro"],["Trio Pura Paixão",15],["Trio Tropical",15],
-  ["Mousse Maracujá Trufado",15],["Nutella",15],["Nutella Morango",15],["M&M",15],["Amor Perfeito",15],["Amor em Pedaços",15],
-  ["Kit Kat",20],["Batom Garoto",15],["Sonho de Valsa",15],["Ouro Branco",15],["Laka Oreo",15],["Laka Diamante Negro",15],
-  ["Bombom de Uva",15],["Sensação",15],["Pistache",15],["Pistache com Nutella",15],["Ovomaltine",15],["Kinder Bueno",18]
+ {id:"churros", t:"Churros", tag:"Churros", items:[
+  ["Beijinho",10,"Recheio e cobertura de beijinho cremoso Nestlé, confeitado com coco ralado"],
+  ["Chocolate",10,"Recheio e cobertura de brigadeiro cremoso Nestlé, confeito à escolha","confeito"],
+  ["Doce de Leite",10,"Recheio e cobertura de doce de leite cremoso Nestlé, confeitado com amendoim triturado ou farofa de paçoca","confeitoDL"],
+  ["Moranguinho",10,"Recheio e cobertura de moranguinho cremoso Nestlé, confeitado com granulado colorido"],
+  ["Ninho Cremoso",10,"Recheio e cobertura de creme de leite Ninho Nestlé, confeitado com leite em pó"],
+  ["Trio",15,"Recheio de doce de leite, cobertura dupla de beijinho e brigadeiro cremoso Nestlé"],
+  ["Trio Pura Paixão",15,"Recheio de moranguinho e cobertura dupla de brigadeiro e doce de leite cremoso Nestlé"],
+  ["Trio Tropical",15,"Recheio de leite Ninho, cobertura dupla de beijinho e mousse de maracujá cremoso Nestlé"],
+  ["Mousse Maracujá Trufado",15,"Recheio de Nutella original, cobertura de maracujá, confeitado com raspas de chocolate ao leite"],
+  ["Nutella",15,"Recheio e cobertura de Nutella original, confeito à escolha","confeito"],
+  ["Nutella Morango",15,"Recheio e cobertura de Nutella original com morangos"],
+  ["M&M",15,"Recheio e cobertura dupla de chocolate cremoso Nestlé com M&M"],
+  ["Amor Perfeito",15,"Recheio de Nutella original, cobertura de Laka cremoso, morangos e leite em pó"],
+  ["Amor em Pedaços",15,"Recheio e cobertura de Nutella original com morangos e castanha de caju triturada"],
+  ["Kit Kat",20,"Recheio de chocolate cremoso Nestlé, Kit Kat, cobertura de Nutella, confeitado com castanha de caju triturada"],
+  ["Batom Garoto",15,"Recheio de chocolate cremoso Nestlé Batom Garoto, cobertura de Nutella original"],
+  ["Sonho de Valsa",15,"Recheio de Leite Moça cremoso Nestlé com amendoim, cobertura de chocolate cremoso Nestlé, confeitado com Sonho de Valsa"],
+  ["Ouro Branco",15,"Recheio de Leite Moça cremoso Nestlé com amendoim, cobertura de Laka cremoso, confeitado com Ouro Branco"],
+  ["Laka Oreo",15,"Recheio de Leite Moça cremoso Nestlé, cobertura de Laka cremosa com Oreo"],
+  ["Laka Diamante Negro",15,"Recheio de chocolate cremoso e barra de Diamante Negro, cobertura de Laka cremosa"],
+  ["Bombom de Uva",15,"Recheio de Leite Moça cremoso, cobertura de Nutella original com uva verde"],
+  ["Sensação",15,"Recheio e cobertura de Laka cremosa com morangos e raspas de chocolate"],
+  ["Pistache",15,"Recheio e cobertura de pistache cremoso"],
+  ["Pistache com Nutella",15,"Recheio de Nutella com cobertura de pistache"],
+  ["Ovomaltine",15,"Recheio e cobertura de Ovomaltine"],
+  ["Kinder Bueno",18,"Recheio de Kinder Bueno branco e cobertura de Kinder Bueno"]
  ]},
  {id:"tradicionais", t:"Tradicionais", sub:"carne 90g", tag:"Lanche", g:"lanche", items:[
-  ["Hambúrguer",10,"Carne, alface, tomate e molho"],["X-Burguer",12,"Carne, queijo, alface, tomate e molho"],["X-Salada",14],
-  ["X-Bacon",18],["X-Bacon Catupiry",22],["X-Bacon Cheddar",22],["X-Bacon Calabresa",22],
-  ["X-Egg",18],["X-Egg Catupiry",22],["X-Egg Cheddar",22],["X-Egg Calabresa",22],
-  ["X-Calabresa",18],["X-Calabresa Catupiry",22],["X-Calabresa Cheddar",22],["X-Tudo",28],["Vegetariano",18],
+  ["Hambúrguer",10,"Carne, alface, tomate e molho"],
+  ["X-Burguer",12,"Carne, queijo, alface, tomate e molho"],
+  ["X-Salada",14,"Carne, presunto, queijo, alface, tomate e molho"],
+  ["X-Bacon",18,"Carne, presunto, queijo, bacon, batata palha, alface, tomate e molho"],
+  ["X-Bacon Catupiry",22,"Carne, presunto, bacon, catupiry, batata palha, alface, tomate e molho"],
+  ["X-Bacon Cheddar",22,"Carne, bacon, presunto, cheddar, batata palha, alface, tomate e molho"],
+  ["X-Bacon Calabresa",22,"Carne, presunto, queijo, bacon, calabresa, batata palha, alface, tomate e molho"],
+  ["X-Egg",18,"Carne, ovo, presunto, queijo, alface, tomate e molho"],
+  ["X-Egg Catupiry",22,"Carne, ovo, presunto, catupiry, batata palha, alface, tomate e molho"],
+  ["X-Egg Cheddar",22,"Carne, ovo, presunto, cheddar, batata palha, alface, tomate e molho"],
+  ["X-Egg Calabresa",22,"Carne, ovo, presunto, queijo, calabresa, batata palha, alface, tomate e molho"],
+  ["X-Calabresa",18,"Carne, presunto, queijo, calabresa, batata palha, alface, tomate e molho"],
+  ["X-Calabresa Catupiry",22,"Carne, presunto, catupiry, calabresa, batata palha, alface, tomate e molho"],
+  ["X-Calabresa Cheddar",22,"Carne, presunto, cheddar, calabresa, batata palha, alface, tomate e molho"],
+  ["X-Tudo",28,"Carne, presunto, queijo, milho, salsicha, ovo, bacon, calabresa, batata palha, alface, tomate e molho"],
+  ["Vegetariano",10,"2 ovos, alface, tomate e molho"],
   ["Misto Quente",8,"Pão, presunto e queijo"]
  ]},
  {id:"frango", t:"Frango", sub:"filé 150g", tag:"Lanche", g:"lanche", items:[
-  ["X-Frango",20],["X-Frango Egg",22],["X-Frango Bacon",24],["X-Frango Calabresa",24],["X-Frango Catupiry",25],
-  ["X-Frango Cheddar",25],["X-Frango Egg Calabresa",26],["X-Frango Tudo",30]
+  ["X-Frango",20,"Filé de frango, queijo, milho, batata palha, alface, tomate e molho"],
+  ["X-Frango Egg",22,"Filé de frango, queijo, ovo, milho, batata palha, alface, tomate e molho"],
+  ["X-Frango Bacon",24,"Filé de frango, queijo, bacon, milho, batata palha, alface, tomate e molho"],
+  ["X-Frango Calabresa",24,"Filé de frango, queijo, calabresa, milho, batata palha, alface, tomate e molho"],
+  ["X-Frango Catupiry",25,"Filé de frango, catupiry, milho, batata palha, alface, tomate e molho"],
+  ["X-Frango Cheddar",25,"Filé de frango, cheddar, milho, batata palha, alface, tomate e molho"],
+  ["X-Frango Egg Calabresa",26,"Filé de frango, queijo, ovo, calabresa, milho, batata palha, alface, tomate e molho"],
+  ["X-Frango Tudo",30,"Filé de frango, presunto, queijo, ovo, bacon, calabresa, salsicha, milho, batata palha, alface, tomate e molho"]
  ]},
  {id:"artesanais", t:"Artesanais", sub:"blend 150g", tag:"Artesanal", g:"lanche", items:[
-  ["Clássico",22],["Clássico Bacon",25],["Clássico Bacon Barbecue",27],["Clássico Duplo",32],["Cheddar",22],["Cheddar Bacon",25],
-  ["Cheddar Bacon Barbecue",27],["Duplo Cheddar Bacon",35],["Turbo Cheddar",40],["Catupiry",22],["Catupiry Calabresa",25],
-  ["Clássico Cheese",32],["Nordestino",27],["Monstrão",35]
+  ["Clássico",22,"Carne, mussarela, cebola caramelizada, alface, tomate e molho"],
+  ["Clássico Bacon",25,"Carne, mussarela, bacon, cebola caramelizada, alface, tomate e molho"],
+  ["Clássico Bacon Barbecue",27,"Carne, mussarela, bacon, barbecue, cebola caramelizada, alface, tomate e molho"],
+  ["Clássico Duplo",32,"Carne, mussarela, cebola caramelizada, alface, tomate e molho"],
+  ["Cheddar",22,"Carne, cheddar, cebola caramelizada, alface, tomate e molho"],
+  ["Cheddar Bacon",25,"Carne, cheddar, bacon, cebola caramelizada, alface, tomate e molho"],
+  ["Cheddar Bacon Barbecue",27,"Carne, cheddar, bacon, barbecue, cebola caramelizada, alface, tomate e molho"],
+  ["Duplo Cheddar Bacon",35,"Carne, cheddar, bacon, barbecue, cebola caramelizada, alface, tomate e molho"],
+  ["Turbo Cheddar",40,"Duplo de carne, cheddar e mussarela, cebola caramelizada, alface, tomate e molho"],
+  ["Catupiry",22,"Carne, catupiry, cebola caramelizada, alface, tomate e molho"],
+  ["Catupiry Calabresa",25,"Carne, catupiry, calabresa, cebola caramelizada, alface, tomate e molho"],
+  ["Clássico Cheese",32,"Carne, cheddar e catupiry, cebola caramelizada, alface, tomate e molho"],
+  ["Nordestino",27,"Carne, ovo, queijo coalho, cebola caramelizada, alface, tomate e molho"],
+  ["Monstrão",35,"Carne, calabresa, bacon, queijo, presunto, salsicha, ovo, milho, batata palha, alface, tomate e molho"]
  ]},
  {id:"file", t:"Filé Mignon", sub:"150g", tag:"Lanche", g:"lanche", items:[
-  ["X-Filé Mignon",22],["Filé Egg",24],["Filé Bacon",26],["Filé Calabresa",26],["Filé Catupiry",26],["Filé Cheddar",26]
+  ["X-Filé Mignon",22,"Filé mignon, cebola caramelizada, queijo, alface, tomate e molho"],
+  ["Filé Egg",24,"Filé mignon, cebola caramelizada, queijo, ovo, alface, tomate e molho"],
+  ["Filé Bacon",26,"Filé mignon, cebola caramelizada, queijo, bacon, alface, tomate e molho"],
+  ["Filé Calabresa",26,"Filé mignon, cebola caramelizada, queijo, calabresa, alface, tomate e molho"],
+  ["Filé Catupiry",26,"Filé mignon, cebola caramelizada, catupiry, alface, tomate e molho"],
+  ["Filé Cheddar",26,"Filé mignon, cebola caramelizada, cheddar, alface, tomate e molho"]
  ]},
  {id:"bebidas", t:"Bebidas", tag:"Bebida", items:[
   ["Água Mineral 500ml",3],["Água com Gás 500ml",4],["H2OH!",6],["Caldo de Cana 500ml",6],["Suco Natural 500ml",8,"","suco"],
@@ -578,7 +633,7 @@ function openItem(id, idx=null){
 function itemSel(){
   const g = groupOf(cur); const ex=[], sel=[]; let add=0, txt="";
   if(g && g.type!=="text"){
-    $("#itBody").querySelectorAll("input:checked").forEach(i=>{ const k=+i.dataset.i, o=g.opts[k]; if(g.type==="single" && k===0) return; sel.push(k); ex.push(g.type==="single" ? g.title+": "+o[0] : o[0]); add+=o[1]; });
+    $("#itBody").querySelectorAll("input:checked").forEach(i=>{ const k=+i.dataset.i, o=g.opts[k]; if(g.type==="single" && g.none && k===0) return; sel.push(k); ex.push(g.type==="single" ? g.title+": "+o[0] : o[0]); add+=o[1]; });
   }
   if(g && g.type==="text"){ const v=($("#itTxt")||{}).value; if(v&&v.trim()){ txt=v.trim(); ex.push(txt); } }
   return {ex, add, sel, txt};
