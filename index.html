@@ -11,7 +11,13 @@
 <meta property="og:image" content="https://pasteldojuca.github.io/og.jpg">
 <meta property="og:url" content="https://pasteldojuca.github.io/">
 <meta property="og:type" content="website">
-<link rel="icon" href="og.jpg">
+<link rel="icon" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pastel do Juca">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -143,6 +149,12 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
 .gps small{display:block;font-weight:500;color:var(--muted);font-size:12.5px}
 .gps.ok{border-style:solid;background:rgba(246,178,26,.08)}
 .gps.busy{opacity:.7;pointer-events:none}
+.install{display:inline-flex;align-items:center;gap:8px;margin-top:14px;padding:9px 16px;border-radius:99px;border:1px solid var(--yellow);color:var(--yellow);font-weight:700;font-size:14px}
+.install svg{width:17px;height:17px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line);color:#d6cfc3}
+.steps li::before{content:counter(s);flex:none;width:26px;height:26px;border-radius:50%;background:var(--yellow);color:#111;font-weight:700;display:grid;place-items:center;font-size:14px}
+.steps svg{width:18px;height:18px;vertical-align:-3px;color:var(--yellow)}
 .legal h4{font-family:"Barlow Condensed",Barlow,system-ui,sans-serif;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:.05em;color:var(--yellow);margin:18px 0 6px}
 .legal p,.legal li{color:#d6cfc3;font-size:14.5px}
 .legal ul{padding-left:18px;margin:4px 0}
@@ -170,6 +182,7 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
     <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.2-7-11a7 7 0 0114 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Rua Lourildo Barreto, Caldas do Jorro</span>
     <a href="https://instagram.com/opasteldojuca" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>@opasteldojuca</a>
   </div>
+  <div><button class="install hidden" id="installBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M12 7v7M9 11l3 3 3-3"/></svg>Instalar o cardápio no celular</button></div>
 </header>
 
 <div class="bar">
@@ -302,6 +315,29 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
     <button class="btn ghost" id="wipeData">Apagar meus dados</button>
     <button class="btn" data-close>Entendi</button>
   </div>
+</div>
+
+<!-- Instruções de instalação -->
+<div class="sheet" id="installSheet" role="dialog" aria-modal="true" aria-labelledby="inTitle">
+  <div class="sh-head">
+    <h3><span id="inTitle">Instalar no celular</span><p>O cardápio fica na tela inicial, como um aplicativo.</p></h3>
+    <button class="x" data-close aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="sh-body">
+    <ol class="steps" id="stepsIos">
+      <li><span>Abra este site no <strong>Safari</strong>.</span></li>
+      <li><span>Toque no botão <strong>Compartilhar</strong> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/></svg> na barra de baixo.</span></li>
+      <li><span>Role e toque em <strong>Adicionar à Tela de Início</strong>.</span></li>
+      <li><span>Toque em <strong>Adicionar</strong>. Pronto!</span></li>
+    </ol>
+    <ol class="steps hidden" id="stepsOther">
+      <li><span>Abra este site no <strong>Chrome</strong>.</span></li>
+      <li><span>Toque no menu <strong>⋮</strong> no canto de cima.</span></li>
+      <li><span>Toque em <strong>Instalar app</strong> ou <strong>Adicionar à tela inicial</strong>.</span></li>
+      <li><span>Confirme em <strong>Instalar</strong>. Pronto!</span></li>
+    </ol>
+  </div>
+  <div class="sh-foot"><button class="btn" data-close>Entendi</button></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -670,6 +706,26 @@ $("#wipeData").onclick=()=>{
   geo=null; setGps("","Enviar minha localização (GPS)","Ajuda o entregador a chegar mais rápido"); cart=[]; ["Nome","Rua","Num","Bairro","Ref","Troco","Obs"].forEach(k=>$("#f"+k).value="");
   tipo="entrega"; syncTipo(); renderBar(); render($("#q").value);
   toast("Dados apagados deste aparelho");
+};
+
+/* ----- Instalar (PWA) ----- */
+const standalone = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
+let installEvt=null;
+if("serviceWorker" in navigator && location.protocol==="https:"){
+  window.addEventListener("load",()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); });
+}
+window.addEventListener("beforeinstallprompt",e=>{ e.preventDefault(); installEvt=e; if(!standalone) $("#installBtn").classList.remove("hidden"); });
+window.addEventListener("appinstalled",()=>{ $("#installBtn").classList.add("hidden"); installEvt=null; toast("Cardápio instalado na tela inicial"); });
+if(!standalone && (isIOS || /android/i.test(navigator.userAgent))) $("#installBtn").classList.remove("hidden");
+$("#installBtn").onclick=async()=>{
+  if(installEvt){
+    installEvt.prompt();
+    try{ const r=await installEvt.userChoice; if(r.outcome==="accepted") $("#installBtn").classList.add("hidden"); }catch(e){}
+    installEvt=null; return;
+  }
+  $("#stepsIos").classList.toggle("hidden",!isIOS); $("#stepsOther").classList.toggle("hidden",isIOS);
+  show($("#installSheet"));
 };
 
 /* ----- Toast ----- */
