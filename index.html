@@ -246,7 +246,7 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
       <div id="closedWarn" class="alert hidden"></div>
       <div class="field"><label for="fNome">Seu nome <i>*</i></label><input id="fNome" autocomplete="name" required></div>
       <div class="field"><label>Como vai receber?</label>
-        <div class="seg" id="segTipo"><button type="button" data-v="entrega" class="on">🛵 Entrega</button><button type="button" data-v="retirada">🏃 Retirar no local</button></div>
+        <div class="seg" id="segTipo"><button type="button" data-v="entrega" class="on">Entrega</button><button type="button" data-v="retirada">Retirar no local</button></div>
       </div>
       <div id="addrBox">
         <button type="button" class="gps" id="gpsBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/></svg><span><span id="gpsTxt">Enviar minha localização (GPS)</span><small id="gpsSub">Ajuda o entregador a chegar mais rápido</small></span></button>
@@ -710,7 +710,7 @@ function buildMsg(){
   const v=k=>$("#f"+k).value.trim();
   let m=`*NOVO PEDIDO — Pastello & Cia*\n\n`;
   m+=`*Cliente:* ${v("Nome")}\n`;
-  m+=`*Tipo:* ${tipo==="entrega"?"Entrega 🛵":"Retirada no local 🏃"}\n\n`;
+  m+=`*Tipo:* ${tipo==="entrega"?"Entrega":"Retirada no local"}\n\n`;
   m+=`*ITENS*\n`;
   cart.forEach(l=>{ const it=ITEMS[l.id];
     m+=`• ${l.q}x ${lineName(it)} — ${brl((it.p+l.add)*l.q)}\n`;
