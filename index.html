@@ -138,6 +138,12 @@ textarea:focus,.field input:focus,.field select:focus{border-color:var(--yellow)
 .err{border-color:var(--red)!important}
 pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:12px;font-family:Barlow,sans-serif;font-size:14px;color:#ddd;max-height:46vh;overflow:auto}
 .hidden{display:none!important}
+.legal h4{font-family:"Barlow Condensed",Barlow,system-ui,sans-serif;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:.05em;color:var(--yellow);margin:18px 0 6px}
+.legal p,.legal li{color:#d6cfc3;font-size:14.5px}
+.legal ul{padding-left:18px;margin:4px 0}
+.legal li{margin:4px 0}
+.legal .upd{color:var(--muted);font-size:13px;margin-top:2px}
+.flink{color:var(--yellow);text-decoration:underline;text-underline-offset:3px;font-weight:600;font-size:13px}
 .toast{position:fixed;left:50%;top:calc(16px + env(safe-area-inset-top));transform:translate(-50%,-20px);background:var(--text);color:#111;font-weight:700;padding:10px 16px;border-radius:99px;z-index:60;opacity:0;transition:.2s;pointer-events:none;font-size:14px}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 @media (min-width:700px){
@@ -177,7 +183,8 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
   <strong>Pastello & Cia — O Pastel do Juca</strong><br>
   Rua Lourildo Barreto, 419–485 · Caldas do Jorro, Tucano – BA · 48793-000<br>
   WhatsApp: (75) 99119-8351 · (75) 98854-4419<br>
-  Aberto todos os dias, exceto às terças · Delivery das 18h30 às 00h30
+  Aberto todos os dias, exceto às terças · Delivery das 18h30 às 00h30<br><br>
+  <button class="flink" id="openLegal">Privacidade e termos de uso</button>
 </footer>
 
 <div class="cartbar" id="cartbar">
@@ -243,6 +250,52 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
     </div>
   </div>
   <div class="sh-foot" id="ckFoot"></div>
+</div>
+
+<!-- Privacidade e termos -->
+<div class="sheet" id="legalSheet" role="dialog" aria-modal="true" aria-labelledby="lgTitle">
+  <div class="sh-head">
+    <h3><span id="lgTitle">Privacidade e termos</span><p>Última atualização: novembro de 2026</p></h3>
+    <button class="x" data-close aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="sh-body legal">
+    <h4>Política de privacidade</h4>
+    <p>Este site é o cardápio digital da Pastello &amp; Cia — O Pastel do Juca. Ele serve para você montar seu pedido e enviá-lo pelo WhatsApp.</p>
+
+    <h4>Quais dados usamos</h4>
+    <p>Para montar o pedido, pedimos seu nome, endereço de entrega, forma de pagamento e observações. Não pedimos CPF, e-mail, senha nem dados de cartão.</p>
+
+    <h4>Onde seus dados ficam</h4>
+    <ul>
+      <li><strong>No seu aparelho:</strong> nome, endereço e carrinho ficam salvos apenas no navegador do seu celular ou computador, para agilizar o próximo pedido. Esses dados não são enviados a nenhum servidor nosso.</li>
+      <li><strong>No WhatsApp da loja:</strong> ao tocar em "Enviar no WhatsApp", a mensagem com o pedido é enviada por você para a loja. Ela fica no histórico da conversa, como qualquer outra mensagem, e segue as regras de privacidade do próprio WhatsApp.</li>
+    </ul>
+
+    <h4>Para que usamos</h4>
+    <p>Somente para preparar, entregar e tirar dúvidas sobre o seu pedido. Não vendemos, não compartilhamos e não usamos seus dados para propaganda.</p>
+
+    <h4>Serviços de terceiros</h4>
+    <p>O site é hospedado no GitHub Pages e usa fontes do Google Fonts. Como em qualquer site, esses serviços podem registrar dados técnicos de acesso, como o endereço IP. Não usamos cookies de rastreamento nem ferramentas de análise.</p>
+
+    <h4>Seus direitos</h4>
+    <p>Você pode apagar os dados salvos no seu aparelho a qualquer momento pelo botão abaixo. Para pedir a exclusão das mensagens do seu pedido, fale com a loja pelo WhatsApp (75) 99119-8351.</p>
+
+    <h4>Termos de uso</h4>
+    <ul>
+      <li>O site é um catálogo. O pedido só está confirmado quando a loja responder pelo WhatsApp.</li>
+      <li>Preços, itens e disponibilidade podem mudar sem aviso. Em caso de diferença, vale o que a loja confirmar.</li>
+      <li>A taxa de entrega e o pagamento são combinados diretamente com a loja. Nenhum pagamento é feito pelo site.</li>
+      <li>Entregas em Caldas do Jorro e região, das 18h30 às 00h30, todos os dias exceto às terças.</li>
+      <li>Pedidos enviados fora do horário são respondidos quando a loja abrir.</li>
+    </ul>
+
+    <h4>Contato</h4>
+    <p>Pastello &amp; Cia — O Pastel do Juca<br>Rua Lourildo Barreto, 419–485, Caldas do Jorro, Tucano – BA<br>WhatsApp: (75) 99119-8351 · (75) 98854-4419<br>Instagram: @opasteldojuca</p>
+  </div>
+  <div class="sh-foot">
+    <button class="btn ghost" id="wipeData">Apagar meus dados</button>
+    <button class="btn" data-close>Entendi</button>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -577,6 +630,15 @@ function buildMsg(){
   return m;
 }
 function waLink(){ return `https://wa.me/${CONFIG.whatsappPedidos}?text=${encodeURIComponent(buildMsg())}`; }
+
+/* ----- Privacidade ----- */
+$("#openLegal").onclick=()=>{ $("#legalSheet .sh-body").scrollTop=0; show($("#legalSheet")); };
+$("#wipeData").onclick=()=>{
+  try{ Object.keys(localStorage).filter(k=>k.startsWith("pjuca_")).forEach(k=>localStorage.removeItem(k)); }catch(e){}
+  cart=[]; ["Nome","Rua","Num","Bairro","Ref","Troco","Obs"].forEach(k=>$("#f"+k).value="");
+  tipo="entrega"; syncTipo(); renderBar(); render($("#q").value);
+  toast("Dados apagados deste aparelho");
+};
 
 /* ----- Toast ----- */
 let tt; function toast(t){ const el=$("#toast"); el.textContent=t; el.classList.add("show"); clearTimeout(tt); tt=setTimeout(()=>el.classList.remove("show"),1900); }
