@@ -69,6 +69,9 @@ section.cat{padding-top:26px;scroll-margin-top:112px}
 .item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px 12px 12px 14px;transition:border-color .15s,transform .1s}
 .item:hover{border-color:#3b3b3b}
 .item:active{transform:scale(.99)}
+.item.off{opacity:.45;cursor:not-allowed}
+.item.off .add{background:var(--panel2);color:var(--muted);width:auto;padding:0 10px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+.edit{color:var(--yellow);font-weight:600;font-size:13.5px;margin-top:4px;text-decoration:underline;text-underline-offset:3px}
 .item .t{flex:1;min-width:0}
 .item .n{font-family:"Barlow Condensed",Barlow,system-ui,sans-serif;font-weight:700;font-size:18.5px;letter-spacing:.01em;color:var(--orange);text-transform:uppercase;line-height:1.1}
 .item .d{color:var(--muted);font-size:13.5px;margin-top:3px}
@@ -352,7 +355,10 @@ const CONFIG = {
   taxaEntrega: null,                   // ex.: 5 → R$ 5,00 | null → "a combinar"
   abre: "18:30", fecha: "00:30",       // horário do delivery
   diaFechado: 2,                       // 0=dom, 1=seg, 2=ter…
-  fuso: "America/Bahia"
+  fuso: "America/Bahia",
+  // Link CSV da planilha do Google (Arquivo → Compartilhar → Publicar na web → CSV).
+  // Vazio = usa o cardápio escrito abaixo.
+  planilhaCSV: ""
 };
 
 /* Grupos de adicionais/opções */
@@ -437,17 +443,30 @@ const ICON_PLUS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 const ICON_MINUS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M5 12h14"/></svg>';
 const ICON_WA = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm0 18.2a8.2 8.2 0 01-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 01-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 00-.7.3 3 3 0 00-.9 2.2 5.2 5.2 0 001.1 2.7 11.8 11.8 0 004.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 001.8-1.2 2.2 2.2 0 00.2-1.2c-.1-.2-.2-.2-.5-.3z"/></svg>';
 
-// Normaliza itens
+// Normaliza itens (ids estáveis pelo nome, para o carrinho sobreviver a mudanças na planilha)
+const slug = s => String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+let CATS = [];
 const ITEMS = {};
-MENU.forEach(c => { c.items = c.items.map((it,i) => {
-  const o = {id:c.id+"-"+i, n:it[0], p:it[1], d:it[2]||"", g:it[3]||c.g||null, cat:c};
-  ITEMS[o.id] = o; return o; }); });
+function buildMenu(cats){
+  for(const k in ITEMS) delete ITEMS[k];
+  cats.forEach(c=>{
+    c.id = slug(c.t);
+    c.items = c.items.map(it=>{
+      const o = Array.isArray(it) ? {n:it[0], p:it[1], d:it[2]||"", g:it[3]||null, ask:"", off:false} : it;
+      o.g = o.g || c.g || null; o.cat = c; o.id = c.id+"--"+slug(o.n);
+      ITEMS[o.id] = o; return o;
+    });
+  });
+  CATS = cats;
+}
+buildMenu(MENU);
+function groupOf(it){ return it.ask ? {title:"Detalhe", type:"text", ph:it.ask} : (it.g && GROUPS[it.g]) || null; }
 
 const store = {
   get(k,d){ try{ const v=localStorage.getItem("pjuca_"+k); return v?JSON.parse(v):d; }catch(e){ return d; } },
   set(k,v){ try{ localStorage.setItem("pjuca_"+k,JSON.stringify(v)); }catch(e){} }
 };
-let cart = store.get("cart",[]).filter(l=>ITEMS[l.id]);
+let cart = store.get("cart",[]).filter(l=>ITEMS[l.id] && !ITEMS[l.id].off);
 
 /* ----- Horário ----- */
 function nowLocal(){
@@ -480,20 +499,23 @@ function render(filter=""){
   const q = filter.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
   const norm = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
   let html="", any=false;
-  MENU.forEach(c=>{
+  CATS.forEach(c=>{
     const list = q ? c.items.filter(i=>norm(i.n+" "+i.d+" "+c.t).includes(q)) : c.items;
     if(!list.length) return; any=true;
     html += `<section class="cat" id="cat-${c.id}"><h2>${esc(c.t)}${c.sub?`<small>${esc(c.sub)}</small>`:""}</h2>${c.note?`<p class="note">${esc(c.note)}</p>`:""}<div class="items">`;
     list.forEach(i=>{
       const n = cart.filter(l=>l.id===i.id).reduce((s,l)=>s+l.q,0);
-      html += `<button class="item" data-id="${i.id}"><div class="t"><div class="n">${esc(i.n)}</div>${i.d?`<div class="d">${esc(i.d)}</div>`:""}<div class="p">${brl(i.p)}</div></div><span class="add" aria-hidden="true">${ICON_PLUS}${n?`<b>${n}</b>`:""}</span></button>`;
+      html += i.off
+        ? `<button class="item off" data-id="${i.id}" aria-disabled="true"><div class="t"><div class="n">${esc(i.n)}</div>${i.d?`<div class="d">${esc(i.d)}</div>`:""}<div class="p">${brl(i.p)}</div></div><span class="add">Esgotado</span></button>`
+        : `<button class="item" data-id="${i.id}"><div class="t"><div class="n">${esc(i.n)}</div>${i.d?`<div class="d">${esc(i.d)}</div>`:""}<div class="p">${brl(i.p)}</div></div><span class="add" aria-hidden="true">${ICON_PLUS}${n?`<b>${n}</b>`:""}</span></button>`;
     });
     html += `</div></section>`;
   });
   $("#menu").innerHTML = any ? html : `<p class="empty">Nada encontrado para “${esc(filter)}”.</p>`;
   observe();
 }
-$("#cats").innerHTML = MENU.map(c=>`<button data-c="${c.id}">${esc(c.t)}</button>`).join("");
+function renderCats(){ $("#cats").innerHTML = CATS.map(c=>`<button data-c="${c.id}">${esc(c.t)}</button>`).join(""); }
+renderCats();
 $("#cats").addEventListener("click",e=>{
   const b=e.target.closest("button"); if(!b) return;
   if($("#q").value){ $("#q").value=""; render(); }
@@ -515,7 +537,7 @@ function observe(){
   document.querySelectorAll("section.cat").forEach(s=>io.observe(s));
 }
 let qt; $("#q").addEventListener("input",e=>{ clearTimeout(qt); qt=setTimeout(()=>render(e.target.value),120); });
-$("#menu").addEventListener("click",e=>{ const b=e.target.closest(".item"); if(b) openItem(b.dataset.id); });
+$("#menu").addEventListener("click",e=>{ const b=e.target.closest(".item"); if(!b) return; if(b.classList.contains("off")){ toast("Item esgotado no momento"); return; } openItem(b.dataset.id); });
 
 /* ----- Sheets ----- */
 let openSheet=null;
@@ -526,13 +548,13 @@ document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",
 document.addEventListener("keydown",e=>{ if(e.key==="Escape") hide(); });
 
 /* ----- Item ----- */
-let cur=null, curQ=1;
-function openItem(id){
-  const it=ITEMS[id]; cur=it; curQ=1;
+let cur=null, curQ=1, editIdx=null;
+function openItem(id, idx=null){
+  const it=ITEMS[id]; cur=it; editIdx=idx; const line = idx!=null ? cart[idx] : null; curQ = line ? line.q : 1;
   $("#itTitle").textContent = lineName(it);
   $("#itDesc").textContent = [it.d, brl(it.p)].filter(Boolean).join(" · ");
   let h="";
-  const g = it.g && GROUPS[it.g];
+  const g = groupOf(it);
   if(g){
     if(g.type==="multi"){
       h+=`<div class="grp"><h4>${g.title}<em>opcional</em></h4>`+g.opts.map((o,i)=>`<label class="opt"><input type="checkbox" data-i="${i}"><span>${esc(o[0])}</span><b>+ ${brl(o[1])}</b></label>`).join("")+`</div>`;
@@ -544,30 +566,44 @@ function openItem(id){
   }
   h+=`<div class="grp"><h4>Alguma observação?<em>opcional</em></h4><textarea id="itObs" placeholder="Ex.: sem cebola, bem passado…"></textarea></div>`;
   $("#itBody").innerHTML=h; $("#itBody").scrollTop=0;
+  if(line){
+    if(g && g.type!=="text" && line.sel) $("#itBody").querySelectorAll("input[data-i]").forEach(i=>{ i.checked = line.sel.includes(+i.dataset.i); });
+    if(g && g.type==="single" && line.sel && !line.sel.length){ const r=$("#itBody").querySelector('input[data-i="0"]'); if(r) r.checked=true; }
+    if(g && g.type==="text" && $("#itTxt")) $("#itTxt").value = line.txt || "";
+    $("#itObs").value = line.obs || "";
+  }
   $("#itBody").onchange = updItem;
   updItem(); show($("#itemSheet"));
 }
 function itemSel(){
-  const g = cur.g && GROUPS[cur.g]; const ex=[]; let add=0;
+  const g = groupOf(cur); const ex=[], sel=[]; let add=0, txt="";
   if(g && g.type!=="text"){
-    $("#itBody").querySelectorAll("input:checked").forEach(i=>{ const o=g.opts[+i.dataset.i]; if(g.type==="single" && +i.dataset.i===0) return; ex.push(g.type==="single" ? g.title+": "+o[0] : o[0]); add+=o[1]; });
+    $("#itBody").querySelectorAll("input:checked").forEach(i=>{ const k=+i.dataset.i, o=g.opts[k]; if(g.type==="single" && k===0) return; sel.push(k); ex.push(g.type==="single" ? g.title+": "+o[0] : o[0]); add+=o[1]; });
   }
-  if(g && g.type==="text"){ const v=($("#itTxt")||{}).value; if(v&&v.trim()) ex.push(v.trim()); }
-  return {ex, add};
+  if(g && g.type==="text"){ const v=($("#itTxt")||{}).value; if(v&&v.trim()){ txt=v.trim(); ex.push(txt); } }
+  return {ex, add, sel, txt};
 }
-function updItem(){ const {add}=itemSel(); $("#itQty").textContent=curQ; $("#itAdd").textContent=`Adicionar · ${brl((cur.p+add)*curQ)}`; }
+function updItem(){ const {add}=itemSel(); $("#itQty").textContent=curQ; $("#itAdd").textContent=`${editIdx!=null?"Salvar":"Adicionar"} · ${brl((cur.p+add)*curQ)}`; }
 $("#itMinus").onclick=()=>{ if(curQ>1){curQ--;updItem();} };
 $("#itPlus").onclick=()=>{ curQ++; updItem(); };
 $("#itAdd").onclick=()=>{
-  const {ex,add}=itemSel(); const obs=$("#itObs").value.trim();
+  const {ex,add,sel,txt}=itemSel(); const obs=$("#itObs").value.trim();
   const key=cur.id+"|"+ex.join(",")+"|"+obs;
+  const nl={key,id:cur.id,ex,add,sel,txt,obs,q:curQ};
+  if(editIdx!=null){
+    cart.splice(editIdx,1);
+    const dup=cart.findIndex(l=>l.key===key);
+    if(dup>=0) cart[dup].q+=curQ; else cart.splice(editIdx,0,nl);
+    editIdx=null; save(); hide(); goStep(1); show($("#cartSheet")); toast("Item atualizado");
+    return;
+  }
   const ex0=cart.find(l=>l.key===key);
-  if(ex0) ex0.q+=curQ; else cart.push({key,id:cur.id,ex,add,obs,q:curQ});
+  if(ex0) ex0.q+=curQ; else cart.push(nl);
   save(); hide(); toast(`${curQ}× ${cur.n} adicionado`);
 };
 
 /* ----- Carrinho ----- */
-const lineName = it => (["Lanche","Artesanal","Bebida","Batata","Salgado"].includes(it.cat.tag) || it.n.toLowerCase().startsWith(it.cat.tag.toLowerCase())) ? it.n : `${it.cat.tag} ${it.n}`;
+const lineName = it => (!it.cat.tag || ["Lanche","Artesanal","Bebida","Batata","Salgado"].includes(it.cat.tag) || it.n.toLowerCase().startsWith(it.cat.tag.toLowerCase())) ? it.n : `${it.cat.tag} ${it.n}`;
 const subtotal = () => cart.reduce((s,l)=>s+(ITEMS[l.id].p+l.add)*l.q,0);
 const count = () => cart.reduce((s,l)=>s+l.q,0);
 function save(){ store.set("cart",cart); renderBar(); render($("#q").value); if(openSheet===$("#cartSheet")) renderLines(); }
@@ -580,13 +616,15 @@ function total(){ return subtotal() + (tipo==="entrega" && CONFIG.taxaEntrega ? 
 function renderLines(){
   if(!cart.length){ $("#lines").innerHTML=`<p class="empty">Seu pedido está vazio.</p>`; }
   else $("#lines").innerHTML = cart.map((l,i)=>{ const it=ITEMS[l.id];
-    return `<div class="line"><div class="t"><div class="n">${esc(lineName(it))}</div>${l.ex.length?`<div class="s">+ ${esc(l.ex.join(", "))}</div>`:""}${l.obs?`<div class="s">Obs.: ${esc(l.obs)}</div>`:""}<div class="s">${brl(it.p+l.add)} cada</div></div>
+    return `<div class="line"><div class="t"><div class="n">${esc(lineName(it))}</div>${l.ex.length?`<div class="s">+ ${esc(l.ex.join(", "))}</div>`:""}${l.obs?`<div class="s">Obs.: ${esc(l.obs)}</div>`:""}<div class="s">${brl(it.p+l.add)} cada</div><button class="edit" data-e="${i}">Editar</button></div>
     <div class="r"><strong>${brl((it.p+l.add)*l.q)}</strong><div class="qty"><button data-a="-" data-i="${i}" aria-label="Menos">${ICON_MINUS}</button><span>${l.q}</span><button data-a="+" data-i="${i}" aria-label="Mais">${ICON_PLUS}</button></div></div></div>`;
   }).join("");
   $("#sub1").textContent=brl(subtotal()); $("#fee1").textContent=feeTxt(); $("#tot1").textContent=brl(total()) + (tipo==="entrega"&&CONFIG.taxaEntrega==null?" + taxa":"");
   if(step===1) foot();
 }
 $("#lines").addEventListener("click",e=>{
+  const ed=e.target.closest("button[data-e]");
+  if(ed){ const i=+ed.dataset.e; hide(); openItem(cart[i].id, i); return; }
   const b=e.target.closest("button[data-a]"); if(!b) return; const l=cart[+b.dataset.i];
   if(b.dataset.a==="+") l.q++; else { l.q--; if(l.q<=0) cart.splice(+b.dataset.i,1); }
   save(); if(!cart.length) setTimeout(hide,250);
@@ -732,8 +770,47 @@ $("#installBtn").onclick=async()=>{
 let tt; function toast(t){ const el=$("#toast"); el.textContent=t; el.classList.add("show"); clearTimeout(tt); tt=setTimeout(()=>el.classList.remove("show"),1900); }
 
 /* ----- Init ----- */
+/* ----- Cardápio pela planilha do Google ----- */
+function parseCSV(t){
+  const rows=[]; let row=[], f="", q=false;
+  for(let i=0;i<t.length;i++){ const ch=t[i];
+    if(q){ if(ch==='"'){ if(t[i+1]==='"'){ f+='"'; i++; } else q=false; } else f+=ch; }
+    else if(ch==='"') q=true;
+    else if(ch===','){ row.push(f); f=""; }
+    else if(ch==='\n'){ row.push(f); rows.push(row); row=[]; f=""; }
+    else if(ch!=='\r') f+=ch;
+  }
+  if(f||row.length){ row.push(f); rows.push(row); }
+  return rows;
+}
+const money = s => parseFloat(String(s).replace(/[^\d,.-]/g,"").replace(/\.(?=\d{3}(\D|$))/g,"").replace(",","."));
+async function loadSheet(){
+  if(!CONFIG.planilhaCSV) return;
+  try{
+    const r = await fetch(CONFIG.planilhaCSV,{cache:"no-store"}); if(!r.ok) throw new Error(r.status);
+    const rows = parseCSV(await r.text()); const h = (rows.shift()||[]).map(slug);
+    const ci=h.indexOf("categoria"), ni=h.indexOf("item"), di=h.indexOf("descricao"), pi=h.indexOf("preco"), ai=h.indexOf("disponivel"), qi=h.indexOf("pergunta");
+    if(ci<0||ni<0||pi<0) throw new Error("colunas");
+    const base={}; MENU.forEach(c=>base[slug(c.t)]=c);
+    const cats=[], map={};
+    rows.forEach(r=>{
+      const cn=(r[ci]||"").trim(), nm=(r[ni]||"").trim(), p=money(r[pi]||"");
+      if(!cn||!nm||isNaN(p)) return;
+      let c=map[slug(cn)];
+      if(!c){ const b=base[slug(cn)]||{}; c={t:cn, sub:b.sub, note:b.note, tag:b.tag||null, g:b.g, items:[]}; map[slug(cn)]=c; cats.push(c); }
+      const disp = ai<0 ? "" : slug(r[ai]||"");
+      const old = (b=>b && b.items.find(x=>slug(x.n)===slug(nm)))(base[slug(cn)]);
+      c.items.push({n:nm, p, d:di<0?"":(r[di]||"").trim(), ask:qi<0?"":(r[qi]||"").trim(), g: old?old.g:null, off:["nao","n","esgotado","0","false","indisponivel"].includes(disp)});
+    });
+    if(!cats.length) throw new Error("vazia");
+    buildMenu(cats);
+    cart = cart.filter(l=>ITEMS[l.id] && !ITEMS[l.id].off); store.set("cart",cart);
+    renderCats(); render($("#q").value); renderBar();
+  }catch(e){ console.warn("Planilha indisponível, usando cardápio embutido.", e); }
+}
+
 renderStatus(); setInterval(renderStatus,60000);
-render(); renderBar();
+render(); renderBar(); loadSheet();
 </script>
 </body>
 </html>

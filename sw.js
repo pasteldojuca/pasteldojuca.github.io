@@ -1,5 +1,5 @@
 // Service worker: sempre busca a versão mais nova; usa o cache só sem internet.
-const CACHE = "pjuca-v1";
+const CACHE = "pjuca-v2";
 const ARQUIVOS = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./og.jpg"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ARQUIVOS))); self.skipWaiting(); });
 self.addEventListener("activate", e => {
