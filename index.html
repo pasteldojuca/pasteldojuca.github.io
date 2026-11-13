@@ -94,8 +94,8 @@ footer strong{color:var(--cream)}
 /* ---------- Sheets ---------- */
 .ov{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.66);opacity:0;pointer-events:none;transition:opacity .2s}
 .ov.show{opacity:1;pointer-events:auto}
-.sheet{position:fixed;z-index:50;left:0;right:0;bottom:0;max-height:92vh;max-height:92dvh;display:flex;flex-direction:column;background:var(--panel);border-top:3px solid var(--yellow);border-radius:20px 20px 0 0;transform:translateY(105%);transition:transform .28s cubic-bezier(.2,.8,.2,1);max-width:760px;margin:0 auto}
-.sheet.show{transform:none}
+.sheet{position:fixed;z-index:50;left:0;right:0;bottom:0;max-height:92vh;max-height:92dvh;display:flex;flex-direction:column;background:var(--panel);border-top:3px solid var(--yellow);border-radius:20px 20px 0 0;transform:translateY(calc(100% + 40px));visibility:hidden;transition:transform .28s cubic-bezier(.2,.8,.2,1),visibility 0s linear .28s;max-width:760px;margin:0 auto}
+.sheet.show{transform:none;visibility:visible;transition:transform .28s cubic-bezier(.2,.8,.2,1),visibility 0s}
 .sh-head{display:flex;align-items:flex-start;gap:12px;padding:18px 18px 10px}
 .sh-head h3{flex:1;font-family:Anton,Impact,sans-serif;font-weight:400;font-size:24px;text-transform:uppercase;letter-spacing:.02em;color:var(--cream);line-height:1.1}
 .sh-head p{font-family:Barlow,system-ui,sans-serif;color:var(--muted);font-size:14px;margin-top:4px;text-transform:none;letter-spacing:0}
