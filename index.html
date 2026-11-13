@@ -138,6 +138,11 @@ textarea:focus,.field input:focus,.field select:focus{border-color:var(--yellow)
 .err{border-color:var(--red)!important}
 pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:12px;font-family:Barlow,sans-serif;font-size:14px;color:#ddd;max-height:46vh;overflow:auto}
 .hidden{display:none!important}
+.gps{display:flex;align-items:center;gap:10px;width:100%;margin-top:12px;padding:12px 14px;border-radius:11px;border:1px dashed var(--yellow);color:var(--yellow);font-weight:700;text-align:left}
+.gps svg{width:20px;height:20px;flex:none}
+.gps small{display:block;font-weight:500;color:var(--muted);font-size:12.5px}
+.gps.ok{border-style:solid;background:rgba(246,178,26,.08)}
+.gps.busy{opacity:.7;pointer-events:none}
 .legal h4{font-family:"Barlow Condensed",Barlow,system-ui,sans-serif;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:.05em;color:var(--yellow);margin:18px 0 6px}
 .legal p,.legal li{color:#d6cfc3;font-size:14.5px}
 .legal ul{padding-left:18px;margin:4px 0}
@@ -228,11 +233,12 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
         <div class="seg" id="segTipo"><button type="button" data-v="entrega" class="on">🛵 Entrega</button><button type="button" data-v="retirada">🏃 Retirar no local</button></div>
       </div>
       <div id="addrBox">
+        <button type="button" class="gps" id="gpsBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/></svg><span><span id="gpsTxt">Enviar minha localização (GPS)</span><small id="gpsSub">Ajuda o entregador a chegar mais rápido</small></span></button>
         <div class="field row">
-          <div><label for="fRua">Rua <i>*</i></label><input id="fRua" autocomplete="address-line1"></div>
-          <div><label for="fNum">Número <i>*</i></label><input id="fNum" inputmode="numeric"></div>
+          <div><label for="fRua">Rua <i class="rq">*</i></label><input id="fRua" autocomplete="address-line1"></div>
+          <div><label for="fNum">Número <i class="rq">*</i></label><input id="fNum" inputmode="numeric"></div>
         </div>
-        <div class="field"><label for="fBairro">Bairro / Localidade <i>*</i></label><input id="fBairro" placeholder="Ex.: Centro, Caldas do Jorro"></div>
+        <div class="field"><label for="fBairro">Bairro / Localidade <i class="rq">*</i></label><input id="fBairro" placeholder="Ex.: Centro, Caldas do Jorro"></div>
         <div class="field"><label for="fRef">Ponto de referência / complemento</label><input id="fRef" placeholder="Ex.: casa azul, próximo à praça"></div>
       </div>
       <div id="pickBox" class="hint hidden">Retirada na Rua Lourildo Barreto, 419–485 — Caldas do Jorro.</div>
@@ -263,7 +269,7 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
     <p>Este site é o cardápio digital da Pastello &amp; Cia — O Pastel do Juca. Ele serve para você montar seu pedido e enviá-lo pelo WhatsApp.</p>
 
     <h4>Quais dados usamos</h4>
-    <p>Para montar o pedido, pedimos seu nome, endereço de entrega, forma de pagamento e observações. Não pedimos CPF, e-mail, senha nem dados de cartão.</p>
+    <p>Para montar o pedido, pedimos seu nome, endereço de entrega, forma de pagamento e observações. Se você tocar em "Enviar minha localização", o navegador pede sua permissão e a coordenada do GPS é incluída apenas na mensagem do pedido — ela não é salva no aparelho nem em nenhum servidor. Não pedimos CPF, e-mail, senha nem dados de cartão.</p>
 
     <h4>Onde seus dados ficam</h4>
     <ul>
@@ -564,6 +570,28 @@ function syncTipo(){
 }
 syncTipo();
 
+/* ----- Localização (GPS) ----- */
+let geo=null;
+function setGps(state,txt,sub){
+  const b=$("#gpsBtn"); b.classList.toggle("ok",state==="ok"); b.classList.toggle("busy",state==="busy");
+  $("#gpsTxt").textContent=txt; $("#gpsSub").textContent=sub;
+  document.querySelectorAll("#addrBox .rq").forEach(el=>el.style.visibility = geo ? "hidden" : "visible");
+}
+$("#gpsBtn").onclick=()=>{
+  if(!("geolocation" in navigator)){ setGps("","Seu aparelho não permite localização","Preencha o endereço abaixo"); return; }
+  setGps("busy","Buscando sua localização…","Aceite o pedido de permissão do navegador");
+  navigator.geolocation.getCurrentPosition(p=>{
+    geo={lat:p.coords.latitude.toFixed(6), lng:p.coords.longitude.toFixed(6), acc:Math.round(p.coords.accuracy)};
+    setGps("ok","Localização adicionada ✓",`Precisão de ~${geo.acc} m · toque para atualizar`);
+  },err=>{
+    geo=null;
+    const m = err.code===1 ? ["Permissão negada","Libere a localização nas configurações do navegador ou preencha o endereço"]
+            : err.code===3 ? ["Demorou demais","Verifique se o GPS está ligado e tente de novo"]
+            : ["Não foi possível obter a localização","Ligue o GPS e tente de novo, ou preencha o endereço"];
+    setGps("",m[0],m[1]);
+  },{enableHighAccuracy:true,timeout:15000,maximumAge:60000});
+};
+
 function goStep(n){
   step=n;
   $("#step1").classList.toggle("hidden",n!==1); $("#step2").classList.toggle("hidden",n!==2); $("#step3").classList.toggle("hidden",n!==3);
@@ -596,7 +624,7 @@ $("#step2").addEventListener("submit",e=>e.preventDefault());
 $("#openCart").onclick=()=>{ goStep(1); show($("#cartSheet")); };
 
 function validate(){
-  const req = ["Nome"].concat(tipo==="entrega"?["Rua","Num","Bairro"]:[]);
+  const req = ["Nome"].concat(tipo==="entrega" && !geo ? ["Rua","Num","Bairro"] : []);
   let ok=true, first=null;
   ["Nome","Rua","Num","Bairro"].forEach(k=>$("#f"+k).classList.remove("err"));
   req.forEach(k=>{ const el=$("#f"+k); if(!el.value.trim()){ el.classList.add("err"); ok=false; first=first||el; } });
@@ -619,8 +647,12 @@ function buildMsg(){
   if(tipo==="entrega") m+=`*Taxa de entrega:* ${feeTxt()}\n`;
   m+=`*Total:* ${brl(total())}${tipo==="entrega"&&CONFIG.taxaEntrega==null?" + taxa de entrega":""}\n\n`;
   if(tipo==="entrega"){
-    m+=`*ENDEREÇO*\n${v("Rua")}, ${v("Num")}\n${v("Bairro")}\n`;
+    m+=`*ENDEREÇO*\n`;
+    const ln1=[v("Rua"),v("Num")].filter(Boolean).join(", ");
+    if(ln1) m+=`${ln1}\n`;
+    if(v("Bairro")) m+=`${v("Bairro")}\n`;
     if(v("Ref")) m+=`Ref.: ${v("Ref")}\n`;
+    if(geo) m+=`📍 Localização (GPS, ~${geo.acc} m):\nhttps://maps.google.com/?q=${geo.lat},${geo.lng}\n`;
     m+=`\n`;
   }
   m+=`*Pagamento:* ${pag}`;
@@ -635,7 +667,7 @@ function waLink(){ return `https://wa.me/${CONFIG.whatsappPedidos}?text=${encode
 $("#openLegal").onclick=()=>{ $("#legalSheet .sh-body").scrollTop=0; show($("#legalSheet")); };
 $("#wipeData").onclick=()=>{
   try{ Object.keys(localStorage).filter(k=>k.startsWith("pjuca_")).forEach(k=>localStorage.removeItem(k)); }catch(e){}
-  cart=[]; ["Nome","Rua","Num","Bairro","Ref","Troco","Obs"].forEach(k=>$("#f"+k).value="");
+  geo=null; setGps("","Enviar minha localização (GPS)","Ajuda o entregador a chegar mais rápido"); cart=[]; ["Nome","Rua","Num","Bairro","Ref","Troco","Obs"].forEach(k=>$("#f"+k).value="");
   tipo="entrega"; syncTipo(); renderBar(); render($("#q").value);
   toast("Dados apagados deste aparelho");
 };
