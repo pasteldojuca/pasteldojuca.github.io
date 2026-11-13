@@ -2,6 +2,8 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-V4qS+3P6eeRN/mj+QIcFrVeNSiXPjguddeL9Ej130tQ='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pastello & Cia — Cardápio e Pedidos</title>
 <meta name="description" content="Peça pastéis, coxinhas, churros e hambúrgueres da Pastello & Cia — O Pastel do Juca, em Caldas do Jorro. Pedido direto no WhatsApp.">
@@ -246,26 +248,26 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
     <!-- step 2 -->
     <form id="step2" class="hidden" novalidate>
       <div id="closedWarn" class="alert hidden"></div>
-      <div class="field"><label for="fNome">Seu nome <i>*</i></label><input id="fNome" autocomplete="name" required></div>
+      <div class="field"><label for="fNome">Seu nome <i>*</i></label><input id="fNome" maxlength="60" autocomplete="name" required></div>
       <div class="field"><label>Como vai receber?</label>
         <div class="seg" id="segTipo"><button type="button" data-v="entrega" class="on">Entrega</button><button type="button" data-v="retirada">Retirar no local</button></div>
       </div>
       <div id="addrBox">
         <button type="button" class="gps" id="gpsBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/></svg><span><span id="gpsTxt">Enviar minha localização (GPS)</span><small id="gpsSub">Ajuda o entregador a chegar mais rápido</small></span></button>
         <div class="field row">
-          <div><label for="fRua">Rua <i class="rq">*</i></label><input id="fRua" autocomplete="address-line1"></div>
-          <div><label for="fNum">Número <i class="rq">*</i></label><input id="fNum" inputmode="numeric"></div>
+          <div><label for="fRua">Rua <i class="rq">*</i></label><input id="fRua" maxlength="100" autocomplete="address-line1"></div>
+          <div><label for="fNum">Número <i class="rq">*</i></label><input id="fNum" maxlength="12" inputmode="numeric"></div>
         </div>
-        <div class="field"><label for="fBairro">Bairro / Localidade <i class="rq">*</i></label><input id="fBairro" placeholder="Ex.: Centro, Caldas do Jorro"></div>
-        <div class="field"><label for="fRef">Ponto de referência / complemento</label><input id="fRef" placeholder="Ex.: casa azul, próximo à praça"></div>
+        <div class="field"><label for="fBairro">Bairro / Localidade <i class="rq">*</i></label><input id="fBairro" maxlength="80" placeholder="Ex.: Centro, Caldas do Jorro"></div>
+        <div class="field"><label for="fRef">Ponto de referência / complemento</label><input id="fRef" maxlength="150" placeholder="Ex.: casa azul, próximo à praça"></div>
       </div>
       <div id="pickBox" class="hint hidden">Retirada na Rua Lourildo Barreto, 419–485 — Caldas do Jorro.</div>
       <div class="field"><label>Forma de pagamento</label>
         <div class="seg three" id="segPag"><button type="button" data-v="Pix" class="on">Pix</button><button type="button" data-v="Cartão">Cartão</button><button type="button" data-v="Dinheiro">Dinheiro</button></div>
         <p class="hint">O pagamento é combinado direto com a loja pelo WhatsApp.</p>
       </div>
-      <div class="field hidden" id="trocoBox"><label for="fTroco">Troco para quanto?</label><input id="fTroco" inputmode="decimal" placeholder="Ex.: 50 (deixe vazio se não precisar)"></div>
-      <div class="field"><label for="fObs">Observações do pedido</label><textarea id="fObs" placeholder="Algo que a gente precisa saber?"></textarea></div>
+      <div class="field hidden" id="trocoBox"><label for="fTroco">Troco para quanto?</label><input id="fTroco" maxlength="10" inputmode="decimal" placeholder="Ex.: 50 (deixe vazio se não precisar)"></div>
+      <div class="field"><label for="fObs">Observações do pedido</label><textarea id="fObs" maxlength="300" placeholder="Algo que a gente precisa saber?"></textarea></div>
     </form>
     <!-- step 3 -->
     <div id="step3" class="hidden">
@@ -523,7 +525,30 @@ const store = {
   get(k,d){ try{ const v=localStorage.getItem("pjuca_"+k); return v?JSON.parse(v):d; }catch(e){ return d; } },
   set(k,v){ try{ localStorage.setItem("pjuca_"+k,JSON.stringify(v)); }catch(e){} }
 };
-let cart = store.get("cart",[]).filter(l=>ITEMS[l.id] && !ITEMS[l.id].off);
+const MAXQ = 50;
+// Reconstrói o carrinho salvo a partir do cardápio: preço e adicionais nunca vêm do aparelho.
+function sanitizeCart(list){
+  if(!Array.isArray(list)) return [];
+  const out=[];
+  list.forEach(l=>{
+    if(!l || typeof l!=="object") return;
+    const it=ITEMS[l.id]; if(!it || it.off) return;
+    const q=Math.floor(+l.q); if(!(q>=1)) return;
+    const g=groupOf(it); const ex=[]; const sel=[]; let add=0; let txt="";
+    if(g && g.type!=="text" && Array.isArray(l.sel)){
+      [...new Set(l.sel.map(Number))].forEach(k=>{
+        const o=g.opts[k]; if(!o || (g.type==="single" && g.none && k===0)) return;
+        if(g.type==="single" && sel.length) return;
+        sel.push(k); ex.push(g.type==="single" ? g.title+": "+o[0] : o[0]); add+=o[1];
+      });
+    }
+    if(g && g.type==="text" && typeof l.txt==="string" && l.txt.trim()){ txt=l.txt.trim().slice(0,60); ex.push(txt); }
+    const obs = typeof l.obs==="string" ? l.obs.trim().slice(0,200) : "";
+    out.push({key:it.id+"|"+ex.join(",")+"|"+obs, id:it.id, ex, add, sel, txt, obs, q:Math.min(q,MAXQ)});
+  });
+  return out;
+}
+let cart = sanitizeCart(store.get("cart",[]));
 
 /* ----- Horário ----- */
 function nowLocal(){
@@ -618,10 +643,10 @@ function openItem(id, idx=null){
     } else if(g.type==="single"){
       h+=`<div class="grp"><h4>${g.title}<em>escolha 1</em></h4>`+g.opts.map((o,i)=>`<label class="opt"><input type="radio" name="sg" data-i="${i}" ${i===0?"checked":""}><span>${esc(o[0])}</span></label>`).join("")+`</div>`;
     } else if(g.type==="text"){
-      h+=`<div class="grp"><h4>${g.title}</h4><div class="field" style="margin:0"><input id="itTxt" placeholder="${esc(g.ph)}"></div></div>`;
+      h+=`<div class="grp"><h4>${g.title}</h4><div class="field" style="margin:0"><input id="itTxt" maxlength="60" placeholder="${esc(g.ph)}"></div></div>`;
     }
   }
-  h+=`<div class="grp"><h4>Alguma observação?<em>opcional</em></h4><textarea id="itObs" placeholder="Ex.: sem cebola, bem passado…"></textarea></div>`;
+  h+=`<div class="grp"><h4>Alguma observação?<em>opcional</em></h4><textarea id="itObs" maxlength="200" placeholder="Ex.: sem cebola, bem passado…"></textarea></div>`;
   $("#itBody").innerHTML=h; $("#itBody").scrollTop=0;
   if(line){
     if(g && g.type!=="text" && line.sel) $("#itBody").querySelectorAll("input[data-i]").forEach(i=>{ i.checked = line.sel.includes(+i.dataset.i); });
@@ -642,7 +667,7 @@ function itemSel(){
 }
 function updItem(){ const {add}=itemSel(); $("#itQty").textContent=curQ; $("#itAdd").textContent=`${editIdx!=null?"Salvar":"Adicionar"} · ${brl((cur.p+add)*curQ)}`; }
 $("#itMinus").onclick=()=>{ if(curQ>1){curQ--;updItem();} };
-$("#itPlus").onclick=()=>{ curQ++; updItem(); };
+$("#itPlus").onclick=()=>{ if(curQ<MAXQ){ curQ++; updItem(); } else toast(`Máximo de ${MAXQ} por item`); };
 $("#itAdd").onclick=()=>{
   const {ex,add,sel,txt}=itemSel(); const obs=$("#itObs").value.trim();
   const key=cur.id+"|"+ex.join(",")+"|"+obs;
@@ -650,12 +675,12 @@ $("#itAdd").onclick=()=>{
   if(editIdx!=null){
     cart.splice(editIdx,1);
     const dup=cart.findIndex(l=>l.key===key);
-    if(dup>=0) cart[dup].q+=curQ; else cart.splice(editIdx,0,nl);
+    if(dup>=0) cart[dup].q=Math.min(cart[dup].q+curQ,MAXQ); else cart.splice(editIdx,0,nl);
     editIdx=null; save(); hide(); goStep(1); show($("#cartSheet")); toast("Item atualizado");
     return;
   }
   const ex0=cart.find(l=>l.key===key);
-  if(ex0) ex0.q+=curQ; else cart.push(nl);
+  if(ex0) ex0.q=Math.min(ex0.q+curQ,MAXQ); else cart.push(nl);
   save(); hide(); toast(`${curQ}× ${cur.n} adicionado`);
 };
 
@@ -683,7 +708,7 @@ $("#lines").addEventListener("click",e=>{
   const ed=e.target.closest("button[data-e]");
   if(ed){ const i=+ed.dataset.e; hide(); openItem(cart[i].id, i); return; }
   const b=e.target.closest("button[data-a]"); if(!b) return; const l=cart[+b.dataset.i];
-  if(b.dataset.a==="+") l.q++; else { l.q--; if(l.q<=0) cart.splice(+b.dataset.i,1); }
+  if(b.dataset.a==="+"){ if(l.q<MAXQ) l.q++; else toast(`Máximo de ${MAXQ} por item`); } else { l.q--; if(l.q<=0) cart.splice(+b.dataset.i,1); }
   save(); if(!cart.length) setTimeout(hide,250);
 });
 
@@ -823,6 +848,11 @@ $("#installBtn").onclick=async()=>{
   show($("#installSheet"));
 };
 
+/* ----- Proteção contra exibição dentro de outro site ----- */
+if(location.hostname==="pasteldojuca.github.io" && window.top!==window.self){
+  try{ window.top.location.href = location.href; }catch(e){ document.body.innerHTML='<p style="padding:40px;text-align:center">Abra o cardápio em <a href="https://pasteldojuca.github.io">pasteldojuca.github.io</a></p>'; }
+}
+
 /* ----- Toast ----- */
 let tt; function toast(t){ const el=$("#toast"); el.textContent=t; el.classList.add("show"); clearTimeout(tt); tt=setTimeout(()=>el.classList.remove("show"),1900); }
 
@@ -845,23 +875,24 @@ async function loadSheet(){
   if(!CONFIG.planilhaCSV) return;
   try{
     const r = await fetch(CONFIG.planilhaCSV,{cache:"no-store"}); if(!r.ok) throw new Error(r.status);
-    const rows = parseCSV(await r.text()); const h = (rows.shift()||[]).map(slug);
+    const txt = await r.text(); if(txt.length>500000) throw new Error("grande demais");
+    const rows = parseCSV(txt).slice(0,1001); const h = (rows.shift()||[]).map(slug);
     const ci=h.indexOf("categoria"), ni=h.indexOf("item"), di=h.indexOf("descricao"), pi=h.indexOf("preco"), ai=h.indexOf("disponivel"), qi=h.indexOf("pergunta");
     if(ci<0||ni<0||pi<0) throw new Error("colunas");
     const base={}; MENU.forEach(c=>base[slug(c.t)]=c);
     const cats=[], map={};
     rows.forEach(r=>{
       const cn=(r[ci]||"").trim(), nm=(r[ni]||"").trim(), p=money(r[pi]||"");
-      if(!cn||!nm||isNaN(p)) return;
+      if(!cn||!nm||!isFinite(p)||p<0||p>1000||cn.length>40||nm.length>80) return;
       let c=map[slug(cn)];
       if(!c){ const b=base[slug(cn)]||{}; c={t:cn, sub:b.sub, note:b.note, tag:b.tag||null, g:b.g, items:[]}; map[slug(cn)]=c; cats.push(c); }
       const disp = ai<0 ? "" : slug(r[ai]||"");
       const old = (b=>b && b.items.find(x=>slug(x.n)===slug(nm)))(base[slug(cn)]);
-      c.items.push({n:nm, p, d:di<0?"":(r[di]||"").trim(), ask:qi<0?"":(r[qi]||"").trim(), g: old?old.g:null, off:["nao","n","esgotado","0","false","indisponivel"].includes(disp)});
+      c.items.push({n:nm, p:Math.round(p*100)/100, d:di<0?"":(r[di]||"").trim().slice(0,250), ask:qi<0?"":(r[qi]||"").trim().slice(0,60), g: old?old.g:null, off:["nao","n","esgotado","0","false","indisponivel"].includes(disp)});
     });
     if(!cats.length) throw new Error("vazia");
     buildMenu(cats);
-    cart = cart.filter(l=>ITEMS[l.id] && !ITEMS[l.id].off); store.set("cart",cart);
+    cart = sanitizeCart(cart); store.set("cart",cart);
     renderCats(); render($("#q").value); renderBar();
   }catch(e){ console.warn("Planilha indisponível, usando cardápio embutido.", e); }
 }
