@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-V4qS+3P6eeRN/mj+QIcFrVeNSiXPjguddeL9Ej130tQ='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-TfndO/tm7lZyD+QvgoKnBz5i2kkWW+fqmUtTyfcpnoI='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pastello & Cia — Cardápio e Pedidos</title>
@@ -162,6 +162,8 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
 .steps li{counter-increment:s;display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line);color:#d6cfc3}
 .steps li::before{content:counter(s);flex:none;width:26px;height:26px;border-radius:50%;background:var(--yellow);color:#111;font-weight:700;display:grid;place-items:center;font-size:14px}
 .steps svg{width:18px;height:18px;vertical-align:-3px;color:var(--yellow)}
+.alt{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:11px;color:var(--muted);font-size:14px;line-height:1.5}
+.alt a{color:var(--yellow);font-weight:700;text-decoration:underline;text-underline-offset:3px}
 .legal h4{font-family:"Barlow Condensed",Barlow,system-ui,sans-serif;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:.05em;color:var(--yellow);margin:18px 0 6px}
 .legal p,.legal li{color:#d6cfc3;font-size:14.5px}
 .legal ul{padding-left:18px;margin:4px 0}
@@ -273,6 +275,7 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
     <div id="step3" class="hidden">
       <p class="hint" style="margin:0 0 10px">Confira a mensagem. Ao tocar no botão verde, o WhatsApp abre com o pedido pronto — é só enviar.</p>
       <pre class="msg" id="msgPrev"></pre>
+      <div class="alt" id="altBox">O WhatsApp principal não está respondendo?<br><a id="altSend" target="_blank" rel="noopener">Enviar para o número reserva <span id="altNum"></span></a></div>
     </div>
   </div>
   <div class="sh-foot" id="ckFoot"></div>
@@ -356,6 +359,7 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
 const CONFIG = {
   loja: "Pastello & Cia — O Pastel do Juca",
   whatsappPedidos: "5575991198351",   // número que recebe os pedidos
+  whatsappReserva: "5575988544419",   // número reserva (aparece como alternativa no envio)
   taxaEntrega: null,                   // ex.: 5 → R$ 5,00 | null → "a combinar"
   abre: "18:30", fecha: "00:30",       // horário do delivery
   diaFechado: 2,                       // 0=dom, 1=seg, 2=ter…
@@ -773,7 +777,7 @@ $("#ckFoot").addEventListener("click",e=>{
   if(t.id==="go2") goStep(2);
   if(t.id==="back1") goStep(1);
   if(t.id==="back2") goStep(2);
-  if(t.id==="go3"){ if(validate()){ $("#msgPrev").textContent=buildMsg(); goStep(3); } }
+  if(t.id==="go3"){ if(validate()){ $("#msgPrev").textContent=buildMsg(); syncAlt(); goStep(3); } }
   if(t.id==="send"){ setTimeout(()=>toast("Pedido aberto no WhatsApp — é só enviar!"),300); }
 });
 $("#step2").addEventListener("submit",e=>e.preventDefault());
@@ -817,7 +821,13 @@ function buildMsg(){
   if(v("Obs")) m+=`\n*Observações:* ${v("Obs")}\n`;
   return m;
 }
-function waLink(){ return `https://wa.me/${CONFIG.whatsappPedidos}?text=${encodeURIComponent(buildMsg())}`; }
+function waLink(num=CONFIG.whatsappPedidos){ return `https://wa.me/${num}?text=${encodeURIComponent(buildMsg())}`; }
+const fmtTel = n => { const d=String(n).replace(/\D/g,"").replace(/^55/,""); return d.length>=10 ? `(${d.slice(0,2)}) ${d.slice(2,-4)}-${d.slice(-4)}` : d; };
+function syncAlt(){
+  const r=CONFIG.whatsappReserva, ok = r && r!==CONFIG.whatsappPedidos;
+  $("#altBox").classList.toggle("hidden",!ok);
+  if(ok){ $("#altSend").href=waLink(r); $("#altNum").textContent=fmtTel(r); }
+}
 
 /* ----- Privacidade ----- */
 $("#openLegal").onclick=()=>{ $("#legalSheet .sh-body").scrollTop=0; show($("#legalSheet")); };
@@ -882,7 +892,15 @@ async function loadSheet(){
     const base={}; MENU.forEach(c=>base[slug(c.t)]=c);
     const cats=[], map={};
     rows.forEach(r=>{
-      const cn=(r[ci]||"").trim(), nm=(r[ni]||"").trim(), p=money(r[pi]||"");
+      const cn=(r[ci]||"").trim(), nm=(r[ni]||"").trim();
+      if(slug(cn)==="config"){
+        const val=String((di<0?"":r[di])||r[pi]||"").replace(/\D/g,"");
+        const okNum = /^55\d{10,11}$/.test(val) ? val : (/^\d{10,11}$/.test(val) ? "55"+val : "");
+        if(okNum && slug(nm)==="whatsapp") CONFIG.whatsappPedidos=okNum;
+        if(okNum && slug(nm)==="whatsapp-reserva") CONFIG.whatsappReserva=okNum;
+        return;
+      }
+      const p=money(r[pi]||"");
       if(!cn||!nm||!isFinite(p)||p<0||p>1000||cn.length>40||nm.length>80) return;
       let c=map[slug(cn)];
       if(!c){ const b=base[slug(cn)]||{}; c={t:cn, sub:b.sub, note:b.note, tag:b.tag||null, g:b.g, items:[]}; map[slug(cn)]=c; cats.push(c); }
