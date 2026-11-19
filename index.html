@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-c4gAW9viEvH02PnN57QGRpmCkEwoyPIfTiyFHdo7iMM='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-ebUfnfmUOkelLWEmzHbTwRXXov9Xjw67gny6vKF8igk='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pastello & Cia — Cardápio e Pedidos</title>
@@ -156,6 +156,9 @@ textarea:focus,.field input:focus,.field select:focus{border-color:var(--yellow)
 .seg button{padding:10px;border-radius:9px;font-weight:700;color:var(--muted)}
 .seg button.on{background:var(--yellow);color:#111}
 .seg.three{grid-template-columns:1fr 1fr 1fr}
+.seg.reg button{display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.2;padding:9px 4px}
+.seg.reg button small{font-size:12.5px;font-weight:600;opacity:.8}
+.seg.err{border-color:var(--yellow);box-shadow:0 0 0 1px var(--yellow)}
 .alert{background:rgba(229,83,61,.12);border:1px solid rgba(229,83,61,.4);color:#ffc9bf;border-radius:11px;padding:10px 12px;font-size:14px;margin-top:10px}
 .hint{color:var(--muted);font-size:13px;margin-top:6px}
 .err{border-color:var(--red)!important}
@@ -288,12 +291,15 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
         <div class="seg" id="segTipo"><button type="button" data-v="entrega" class="on">Entrega</button><button type="button" data-v="retirada">Retirar no local</button></div>
       </div>
       <div id="addrBox">
+        <div class="field"><label>Região de entrega <i class="rq">*</i></label>
+          <div class="seg three reg" id="segReg"></div>
+        </div>
         <button type="button" class="gps" id="gpsBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/></svg><span><span id="gpsTxt">Enviar minha localização (GPS)</span><small id="gpsSub">Ajuda o entregador a chegar mais rápido</small></span></button>
         <div class="field row">
           <div><label for="fRua">Rua <i class="rq">*</i></label><input id="fRua" maxlength="100" autocomplete="address-line1"></div>
           <div><label for="fNum">Número <i class="rq">*</i></label><input id="fNum" maxlength="12" placeholder="ou S/N"></div>
         </div>
-        <div class="field"><label for="fBairro">Bairro / Localidade <i class="rq">*</i></label><input id="fBairro" maxlength="80" placeholder="Ex.: Centro, Caldas do Jorro"></div>
+        <div class="field"><label for="fBairro">Bairro / Localidade <i class="rq">*</i></label><input id="fBairro" maxlength="80" placeholder="Ex.: Centro, Rua Nova"></div>
         <div class="field"><label for="fRef">Ponto de referência / complemento</label><input id="fRef" maxlength="150" placeholder="Ex.: casa azul, próximo à praça"></div>
       </div>
       <div id="pickBox" class="hint hidden">Retirada na Rua Lourildo Barreto, 419–485 — Caldas do Jorro.</div>
@@ -347,7 +353,7 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
     <ul>
       <li>O site é um catálogo. O pedido só está confirmado quando a loja responder pelo WhatsApp.</li>
       <li>Preços, itens e disponibilidade podem mudar sem aviso. Em caso de diferença, vale o que a loja confirmar.</li>
-      <li>A taxa de entrega e o pagamento são combinados diretamente com a loja. Nenhum pagamento é feito pelo site.</li>
+      <li>A taxa de entrega é calculada pela região escolhida no pedido (<span data-k="taxas">Caldas do Jorro R$ 3,00; Jorrinho e Tucano R$ 6,00</span>). O pagamento é combinado diretamente com a loja; nenhum pagamento é feito pelo site.</li>
       <li>Entregas em Caldas do Jorro e região, <span data-k="horario-termos">das 18h30 às 00h30, todos os dias exceto às terças</span>.</li>
       <li>Pedidos enviados fora do horário são respondidos quando a loja abrir.</li>
     </ul>
@@ -408,7 +414,12 @@ const CONFIG = {
   whatsappReserva: "5575988544419",   // número reserva (aparece como alternativa no envio)
   // Segurança: a planilha só pode alternar entre estes números (nunca um número de fora)
   numerosPermitidos: ["5575991198351","5575988544419"],
-  taxaEntrega: null,                   // ex.: 5 → R$ 5,00 | null → "a combinar"
+  // Taxa de entrega por região (o cliente escolhe a região na etapa de entrega)
+  regioes: [
+    { nome: "Caldas do Jorro", taxa: 3 },
+    { nome: "Jorrinho",        taxa: 6 },
+    { nome: "Tucano",          taxa: 6 }
+  ],
   abre: "18:30", fecha: "00:30",       // horário do delivery
   diaFechado: 2,                       // 0=dom, 1=seg, 2=ter…
   fuso: "America/Bahia",
@@ -623,6 +634,7 @@ function syncInfo(){
   set("horario-curto",`Delivery ${ab} às ${fe} · fechado ${fd}`);
   set("horario-longo",`Aberto todos os dias, exceto ${fd} · Delivery das ${ab} às ${fe}`);
   set("horario-termos",`das ${ab} às ${fe}, todos os dias exceto ${fd}`);
+  set("taxas", CONFIG.regioes.map(r=>`${r.nome} ${r.taxa?brl(r.taxa):"grátis"}`).join("; "));
   set("tels",tels); set("tel-main",fmtTel(CONFIG.whatsappPedidos));
 }
 const toMin = s => { const [h,m]=s.split(":").map(Number); return h*60+m; };
@@ -761,15 +773,25 @@ function renderBar(){
   $("#cartCnt").textContent=count(); $("#cartTot").textContent=brl(subtotal());
   $("#cartbar").classList.toggle("show",count()>0);
 }
-function feeTxt(){ if(tipo==="retirada") return "—"; return CONFIG.taxaEntrega==null ? "a combinar" : brl(CONFIG.taxaEntrega); }
-function total(){ return subtotal() + (tipo==="entrega" && CONFIG.taxaEntrega ? CONFIG.taxaEntrega : 0); }
+let regiao = null;   // índice em CONFIG.regioes
+const feeVal = () => (tipo==="entrega" && regiao!=null && CONFIG.regioes[regiao]) ? CONFIG.regioes[regiao].taxa : 0;
+const feePending = () => tipo==="entrega" && (regiao==null || !CONFIG.regioes[regiao]);
+function feeTxt(){
+  if(tipo==="retirada") return "—";
+  if(feePending()){ const m=Math.min(...CONFIG.regioes.map(r=>r.taxa)); return `a partir de ${brl(m)}`; }
+  const t=feeVal(); return t ? brl(t) : "grátis";
+}
+function total(){ return subtotal() + feeVal(); }
+function renderRegioes(){
+  $("#segReg").innerHTML = CONFIG.regioes.map((r,i)=>`<button type="button" data-v="${i}" class="${i===regiao?"on":""}">${esc(r.nome)}<small>${r.taxa?brl(r.taxa):"grátis"}</small></button>`).join("");
+}
 function renderLines(){
   if(!cart.length){ $("#lines").innerHTML=`<p class="empty">Seu pedido está vazio.</p>`; }
   else $("#lines").innerHTML = cart.map((l,i)=>{ const it=ITEMS[l.id];
     return `<div class="line"><div class="t"><div class="n">${esc(lineName(it))}</div>${l.ex.length?`<div class="s">+ ${esc(l.ex.join(", "))}</div>`:""}${l.obs?`<div class="s">Obs.: ${esc(l.obs)}</div>`:""}<div class="s">${brl(it.p+l.add)} cada</div><button class="edit" data-e="${i}">Editar</button></div>
     <div class="r"><strong>${brl((it.p+l.add)*l.q)}</strong><div class="qty"><button data-a="-" data-i="${i}" aria-label="Menos">${ICON_MINUS}</button><span>${l.q}</span><button data-a="+" data-i="${i}" aria-label="Mais">${ICON_PLUS}</button></div></div></div>`;
   }).join("");
-  $("#sub1").textContent=brl(subtotal()); $("#fee1").textContent=feeTxt(); $("#tot1").textContent=brl(total()) + (tipo==="entrega"&&CONFIG.taxaEntrega==null?" + taxa":"");
+  $("#sub1").textContent=brl(subtotal()); $("#fee1").textContent=feeTxt(); $("#tot1").textContent=brl(total()) + (feePending()?" + taxa":"");
   if(step===1) foot();
 }
 $("#lines").addEventListener("click",e=>{
@@ -786,8 +808,12 @@ const cust = store.get("cliente",{});
 if(cust && cust.Nome) $("#fLembrar").checked=true;
 ["Nome","Rua","Num","Bairro","Ref"].forEach(k=>{ if(cust[k]) $("#f"+k).value=cust[k]; });
 if(cust.tipo) tipo=cust.tipo;
+if(cust.regiao!=null && CONFIG.regioes[cust.regiao]) regiao=+cust.regiao;
+renderRegioes();
 function seg(el,cb){ el.addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return; el.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); cb(b.dataset.v); }); }
-seg($("#segTipo"),v=>{ tipo=v; syncTipo(); });
+seg($("#segTipo"),v=>{ tipo=v; syncTipo(); updSub(); });
+seg($("#segReg"),v=>{ regiao=+v; $("#segReg").classList.remove("err"); updSub(); });
+function updSub(){ if(step===2) $("#ckSub").textContent=`Total: ${brl(total())}${feePending()?" + taxa de entrega":""}`; }
 seg($("#segPag"),v=>{ pag=v; $("#trocoBox").classList.toggle("hidden",v!=="Dinheiro"); });
 function syncTipo(){
   $("#segTipo").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x.dataset.v===tipo));
@@ -820,7 +846,7 @@ function goStep(n){
   step=n;
   $("#step1").classList.toggle("hidden",n!==1); $("#step2").classList.toggle("hidden",n!==2); $("#step3").classList.toggle("hidden",n!==3);
   $("#ckTitle").textContent = ["","Seu pedido","Entrega e pagamento","Enviar pedido"][n];
-  $("#ckSub").textContent = n===1 ? `${count()} ${count()===1?"item":"itens"}` : `Total: ${brl(total())}${tipo==="entrega"&&CONFIG.taxaEntrega==null?" + taxa de entrega":""}`;
+  $("#ckSub").textContent = n===1 ? `${count()} ${count()===1?"item":"itens"}` : `Total: ${brl(total())}${feePending()?" + taxa de entrega":""}`;
   if(n===2){
     const w=$("#closedWarn"); const o=isOpen();
     w.classList.toggle("hidden",o); if(!o) w.textContent=`Estamos fechados agora (${closedMsg().toLowerCase()}). Você pode enviar o pedido e a loja responde assim que abrir.`;
@@ -850,6 +876,10 @@ $("#openCart").onclick=()=>{ goStep(1); show($("#cartSheet")); };
 function trocoVal(){ const t=$("#fTroco").value.trim(); if(!t) return 0; const n=money(t); return isFinite(n)?Math.round(n*100)/100:NaN; }
 function validate(){
   $("#fTroco").classList.remove("err");
+  if(tipo==="entrega" && feePending()){
+    $("#segReg").classList.add("err"); $("#segReg").scrollIntoView({block:"center",behavior:"smooth"});
+    toast("Escolha a região de entrega"); return false;
+  }
   if(pag==="Dinheiro" && $("#fTroco").value.trim()){
     const t=trocoVal(), min=total();
     if(!isFinite(t) || t<=0){ $("#fTroco").classList.add("err"); $("#fTroco").focus(); toast("Digite só o valor do troco, ex.: 50"); return false; }
@@ -860,7 +890,7 @@ function validate(){
   ["Nome","Rua","Num","Bairro"].forEach(k=>$("#f"+k).classList.remove("err"));
   req.forEach(k=>{ const el=$("#f"+k); if(!el.value.trim()){ el.classList.add("err"); ok=false; first=first||el; } });
   if(!ok){ first.focus(); toast("Preencha os campos obrigatórios"); return false; }
-  if($("#fLembrar").checked){ const c={tipo}; ["Nome","Rua","Num","Bairro","Ref"].forEach(k=>c[k]=$("#f"+k).value.trim()); store.set("cliente",c); }
+  if($("#fLembrar").checked){ const c={tipo,regiao}; ["Nome","Rua","Num","Bairro","Ref"].forEach(k=>c[k]=$("#f"+k).value.trim()); store.set("cliente",c); }
   else { try{ localStorage.removeItem("pjuca_cliente"); }catch(e){} }
   return true;
 }
@@ -887,6 +917,7 @@ function buildMsg(){
   m+=`\n`;
   if(tipo==="entrega"){
     m+=`*ENDEREÇO*\n`;
+    if(CONFIG.regioes[regiao]) m+=`Região: ${CONFIG.regioes[regiao].nome}\n`;
     const ln1=[v("Rua"),v("Num")].filter(Boolean).join(", ");
     if(ln1) m+=`${ln1}\n`;
     if(v("Bairro")) m+=`${v("Bairro")}\n`;
@@ -900,7 +931,7 @@ function buildMsg(){
   if(v("Obs")) m+=`*Observações:* ${v("Obs")}\n`;
   m+=`\n━━━━━━━━━━━━\n*Subtotal:* ${brl(subtotal())}\n`;
   if(tipo==="entrega") m+=`*Taxa de entrega:* ${feeTxt()}\n`;
-  m+=`*TOTAL:* ${brl(total())}${tipo==="entrega"&&CONFIG.taxaEntrega==null?" + taxa de entrega":""}`;
+  m+=`*TOTAL:* ${brl(total())}`;
   return m;
 }
 function waLink(num=CONFIG.whatsappPedidos){ return `https://wa.me/${num}?text=${encodeURIComponent(buildMsg())}`; }
@@ -926,7 +957,7 @@ function syncAlt(){
 $("#openLegal").onclick=()=>{ $("#legalSheet .sh-body").scrollTop=0; show($("#legalSheet")); };
 $("#wipeData").onclick=()=>{
   try{ Object.keys(localStorage).filter(k=>k.startsWith("pjuca_")).forEach(k=>localStorage.removeItem(k)); }catch(e){}
-  geo=null; setGps("","Enviar minha localização (GPS)","Ajuda o entregador a chegar mais rápido"); cart=[]; ["Nome","Rua","Num","Bairro","Ref","Troco","Obs"].forEach(k=>$("#f"+k).value=""); $("#fLembrar").checked=false;
+  geo=null; setGps("","Enviar minha localização (GPS)","Ajuda o entregador a chegar mais rápido"); regiao=null; renderRegioes(); cart=[]; ["Nome","Rua","Num","Bairro","Ref","Troco","Obs"].forEach(k=>$("#f"+k).value=""); $("#fLembrar").checked=false;
   tipo="entrega"; syncTipo(); renderBar(); render($("#q").value);
   toast("Dados apagados deste aparelho");
 };
