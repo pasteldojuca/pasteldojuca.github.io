@@ -1,10 +1,14 @@
-// Usado só se o site for publicado como Cloudflare Workers (arquivos estáticos).
-// No Cloudflare Pages este arquivo é ignorado.
+// Worker do cardápio: serve o site e o painel de métricas.
 {
   "name": "pasteldojuca",
+  "main": "worker/index.js",
   "compatibility_date": "2026-11-01",
   "assets": {
     "directory": ".",
-    "not_found_handling": "404-page"
-  }
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "pasteldojuca-metricas", "database_id": "2b858a60-00e8-4964-8206-8397455fe11e" }
+  ],
+  "observability": { "enabled": true }
 }

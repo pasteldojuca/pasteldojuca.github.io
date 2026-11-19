@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /painel
+Disallow: /api/
+
+Sitemap: https://pasteldojuca.com.br/sitemap.xml
