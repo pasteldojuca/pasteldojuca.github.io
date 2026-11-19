@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-pSD0k6dyMIBOH0NgfNZw9Y1bklzQp3Slt3GJN4bgpkY='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-w2wzFtqrTE8ZGjV3Tz4LUyB3AhX66JhjMoRoWH1FZrE='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pastello & Cia — Cardápio e Pedidos</title>
@@ -22,10 +22,17 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Pastel do Juca">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preload" href="fonts/anton-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/barlow-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <style>
+@font-face{font-family:'Anton';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/anton-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Barlow';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/barlow-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Barlow';font-style:normal;font-weight:500;font-display:swap;src:url(fonts/barlow-latin-500-normal.woff2) format('woff2')}
+@font-face{font-family:'Barlow';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/barlow-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'Barlow';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/barlow-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:500;font-display:swap;src:url(fonts/barlow-condensed-latin-500-normal.woff2) format('woff2')}
+@font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/barlow-condensed-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/barlow-condensed-latin-700-normal.woff2) format('woff2')}
 :root{
   --bg:#000; --panel:#151515; --panel2:#1d1d1d; --line:#2a2a2a;
   --yellow:#f6b21a; --orange:#f39a1e; --cream:#f7e9cf; --muted:#a59a88;
@@ -174,6 +181,9 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
 .cf li svg{flex:none;width:20px;height:20px;color:var(--yellow);margin-top:1px}
 .cf li strong{color:var(--text)}
 .cf .acts{display:flex;gap:10px}
+.remember{margin-top:16px}
+.remember small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.ordid{color:var(--muted);font-size:13px;margin:0 0 8px}
 .legal h4{font-family:"Barlow Condensed",Barlow,system-ui,sans-serif;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:.05em;color:var(--yellow);margin:18px 0 6px}
 .legal p,.legal li{color:#d6cfc3;font-size:14.5px}
 .legal ul{padding-left:18px;margin:4px 0}
@@ -280,6 +290,7 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
       </div>
       <div class="field hidden" id="trocoBox"><label for="fTroco">Troco para quanto?</label><input id="fTroco" maxlength="10" inputmode="decimal" autocomplete="off" placeholder="Ex.: 50 (deixe vazio se não precisar)"></div>
       <div class="field"><label for="fObs">Observações do pedido</label><textarea id="fObs" maxlength="300" placeholder="Algo que a gente precisa saber?"></textarea></div>
+      <label class="opt remember"><input type="checkbox" id="fLembrar"><span>Lembrar meu nome e endereço neste aparelho<small>Deixe desmarcado se o celular for compartilhado</small></span></label>
     </form>
     <!-- step 3 -->
     <div id="step3" class="hidden">
@@ -306,7 +317,7 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
 
     <h4>Onde seus dados ficam</h4>
     <ul>
-      <li><strong>No seu aparelho:</strong> nome, endereço e carrinho ficam salvos apenas no navegador do seu celular ou computador, para agilizar o próximo pedido. Esses dados não são enviados a nenhum servidor nosso.</li>
+      <li><strong>No seu aparelho:</strong> o carrinho fica salvo no navegador do seu celular ou computador. Seu nome e endereço só ficam salvos se você marcar "Lembrar meu nome e endereço neste aparelho", para agilizar o próximo pedido. Esses dados não são enviados a nenhum servidor nosso.</li>
       <li><strong>No WhatsApp da loja:</strong> ao tocar em "Enviar no WhatsApp", a mensagem com o pedido é enviada por você para a loja. Ela fica no histórico da conversa, como qualquer outra mensagem, e segue as regras de privacidade do próprio WhatsApp.</li>
     </ul>
 
@@ -314,7 +325,7 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
     <p>Somente para preparar, entregar e tirar dúvidas sobre o seu pedido. Não vendemos, não compartilhamos e não usamos seus dados para propaganda.</p>
 
     <h4>Serviços de terceiros</h4>
-    <p>O site é hospedado no GitHub Pages e usa fontes do Google Fonts. Como em qualquer site, esses serviços podem registrar dados técnicos de acesso, como o endereço IP. Não usamos cookies de rastreamento nem ferramentas de análise.</p>
+    <p>O site é hospedado no GitHub Pages e pode carregar o cardápio de uma planilha do Google. Como em qualquer site, esses serviços podem registrar dados técnicos de acesso, como o endereço IP. Não usamos cookies de rastreamento nem ferramentas de análise.</p>
 
     <h4>Seus direitos</h4>
     <p>Você pode apagar os dados salvos no seu aparelho a qualquer momento pelo botão abaixo. Para pedir a exclusão das mensagens do seu pedido, fale com a loja pelo WhatsApp <span data-k="tel-main">(75) 99119-8351</span>.</p>
@@ -757,6 +768,7 @@ $("#lines").addEventListener("click",e=>{
 /* ----- Checkout ----- */
 let step=1, tipo="entrega", pag="Pix";
 const cust = store.get("cliente",{});
+if(cust && cust.Nome) $("#fLembrar").checked=true;
 ["Nome","Rua","Num","Bairro","Ref"].forEach(k=>{ if(cust[k]) $("#f"+k).value=cust[k]; });
 if(cust.tipo) tipo=cust.tipo;
 function seg(el,cb){ el.addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return; el.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); cb(b.dataset.v); }); }
@@ -814,7 +826,7 @@ $("#ckFoot").addEventListener("click",e=>{
   if(t.id==="go2") goStep(2);
   if(t.id==="back1") goStep(1);
   if(t.id==="back2") goStep(2);
-  if(t.id==="go3"){ if(validate()){ $("#msgPrev").textContent=buildMsg(); syncAlt(); goStep(3); } }
+  if(t.id==="go3"){ if(validate()){ newOrder(); $("#msgPrev").textContent=buildMsg(); syncAlt(); goStep(3); } }
   if(t.id==="send"){ e.preventDefault(); askConfirm(t.href); }
 });
 $("#step2").addEventListener("submit",e=>e.preventDefault());
@@ -833,14 +845,22 @@ function validate(){
   ["Nome","Rua","Num","Bairro"].forEach(k=>$("#f"+k).classList.remove("err"));
   req.forEach(k=>{ const el=$("#f"+k); if(!el.value.trim()){ el.classList.add("err"); ok=false; first=first||el; } });
   if(!ok){ first.focus(); toast("Preencha os campos obrigatórios"); return false; }
-  const c={tipo}; ["Nome","Rua","Num","Bairro","Ref"].forEach(k=>c[k]=$("#f"+k).value.trim()); store.set("cliente",c);
+  if($("#fLembrar").checked){ const c={tipo}; ["Nome","Rua","Num","Bairro","Ref"].forEach(k=>c[k]=$("#f"+k).value.trim()); store.set("cliente",c); }
+  else { try{ localStorage.removeItem("pjuca_cliente"); }catch(e){} }
   return true;
 }
 // Remove formatação do WhatsApp e quebras de linha de tudo que o cliente digita
 const clean = t => String(t||"").replace(/[*_~`>]/g,"").replace(/\s*[\r\n]+\s*/g," · ").replace(/\s{2,}/g," ").trim();
+let orderId="", orderWhen="";
+function newOrder(){
+  const a=new Uint32Array(1); try{ crypto.getRandomValues(a); }catch(e){ a[0]=Math.random()*1e9; }
+  orderId = String(1000 + a[0]%9000);
+  try{ orderWhen = new Intl.DateTimeFormat("pt-BR",{timeZone:CONFIG.fuso,day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}).format(new Date()).replace(",",""); }
+  catch(e){ const d=new Date(); orderWhen=d.toLocaleString("pt-BR").slice(0,16); }
+}
 function buildMsg(){
   const v=k=>clean($("#f"+k).value);
-  let m=`*NOVO PEDIDO — Pastello & Cia*\n\n`;
+  let m=`*NOVO PEDIDO — Pastello & Cia*\n*Pedido #${orderId}* · ${orderWhen}\n\n`;
   m+=`*Cliente:* ${v("Nome")}\n`;
   m+=`*Tipo:* ${tipo==="entrega"?"Entrega":"Retirada no local"}\n\n`;
   m+=`*ITENS*\n`;
@@ -891,7 +911,7 @@ function syncAlt(){
 $("#openLegal").onclick=()=>{ $("#legalSheet .sh-body").scrollTop=0; show($("#legalSheet")); };
 $("#wipeData").onclick=()=>{
   try{ Object.keys(localStorage).filter(k=>k.startsWith("pjuca_")).forEach(k=>localStorage.removeItem(k)); }catch(e){}
-  geo=null; setGps("","Enviar minha localização (GPS)","Ajuda o entregador a chegar mais rápido"); cart=[]; ["Nome","Rua","Num","Bairro","Ref","Troco","Obs"].forEach(k=>$("#f"+k).value="");
+  geo=null; setGps("","Enviar minha localização (GPS)","Ajuda o entregador a chegar mais rápido"); cart=[]; ["Nome","Rua","Num","Bairro","Ref","Troco","Obs"].forEach(k=>$("#f"+k).value=""); $("#fLembrar").checked=false;
   tipo="entrega"; syncTipo(); renderBar(); render($("#q").value);
   toast("Dados apagados deste aparelho");
 };
