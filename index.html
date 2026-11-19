@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-TfndO/tm7lZyD+QvgoKnBz5i2kkWW+fqmUtTyfcpnoI='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-B5fzmQ1lfLDpNX7zE9WCoFj/+ykdiN/KvyH9VLWqbRk='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pastello & Cia — Cardápio e Pedidos</title>
@@ -164,6 +164,16 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
 .steps svg{width:18px;height:18px;vertical-align:-3px;color:var(--yellow)}
 .alt{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:11px;color:var(--muted);font-size:14px;line-height:1.5}
 .alt a{color:var(--yellow);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.cf-ov{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .18s}
+.cf-ov.show{opacity:1;pointer-events:auto}
+.cf{width:100%;max-width:380px;background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--yellow);border-radius:18px;padding:22px 20px 18px;transform:scale(.96);transition:transform .18s}
+.cf-ov.show .cf{transform:none}
+.cf h3{font-family:Anton,Impact,sans-serif;font-weight:400;font-size:24px;text-transform:uppercase;color:var(--cream);letter-spacing:.02em;line-height:1.1}
+.cf ul{list-style:none;margin:14px 0 18px;padding:0;display:grid;gap:12px}
+.cf li{display:flex;gap:10px;align-items:flex-start;color:#d6cfc3;font-size:15px;line-height:1.4}
+.cf li svg{flex:none;width:20px;height:20px;color:var(--yellow);margin-top:1px}
+.cf li strong{color:var(--text)}
+.cf .acts{display:flex;gap:10px}
 .legal h4{font-family:"Barlow Condensed",Barlow,system-ui,sans-serif;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:.05em;color:var(--yellow);margin:18px 0 6px}
 .legal p,.legal li{color:#d6cfc3;font-size:14.5px}
 .legal ul{padding-left:18px;margin:4px 0}
@@ -258,7 +268,7 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
         <button type="button" class="gps" id="gpsBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/></svg><span><span id="gpsTxt">Enviar minha localização (GPS)</span><small id="gpsSub">Ajuda o entregador a chegar mais rápido</small></span></button>
         <div class="field row">
           <div><label for="fRua">Rua <i class="rq">*</i></label><input id="fRua" maxlength="100" autocomplete="address-line1"></div>
-          <div><label for="fNum">Número <i class="rq">*</i></label><input id="fNum" maxlength="12" inputmode="numeric"></div>
+          <div><label for="fNum">Número <i class="rq">*</i></label><input id="fNum" maxlength="12" placeholder="ou S/N"></div>
         </div>
         <div class="field"><label for="fBairro">Bairro / Localidade <i class="rq">*</i></label><input id="fBairro" maxlength="80" placeholder="Ex.: Centro, Caldas do Jorro"></div>
         <div class="field"><label for="fRef">Ponto de referência / complemento</label><input id="fRef" maxlength="150" placeholder="Ex.: casa azul, próximo à praça"></div>
@@ -348,6 +358,18 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
     </ol>
   </div>
   <div class="sh-foot"><button class="btn" data-close>Entendi</button></div>
+</div>
+
+<!-- Confirmação antes de enviar -->
+<div class="cf-ov" id="cfOv" role="alertdialog" aria-modal="true" aria-labelledby="cfTitle">
+  <div class="cf">
+    <h3 id="cfTitle">Antes de enviar</h3>
+    <ul>
+      <li><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm0 18.2a8.2 8.2 0 01-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2z"/></svg><span>Seu pedido será enviado para o <strong>WhatsApp da loja</strong>. Lá, é só tocar em enviar a mensagem.</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>O pedido só estará <strong>confirmado</strong> depois que nosso atendente responder com a mensagem de confirmação.</span></li>
+    </ul>
+    <div class="acts"><button class="btn ghost" id="cfBack">Voltar</button><a class="btn wa" id="cfGo" target="_blank" rel="noopener">Entendi, enviar</a></div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -631,7 +653,7 @@ function show(el){ openSheet=el; $("#ov").classList.add("show"); el.classList.ad
 function hide(){ if(!openSheet) return; openSheet.classList.remove("show"); $("#ov").classList.remove("show"); document.body.style.overflow=""; openSheet=null; }
 $("#ov").addEventListener("click",hide);
 document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",hide));
-document.addEventListener("keydown",e=>{ if(e.key==="Escape") hide(); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ if($("#cfOv").classList.contains("show")) closeConfirm(); else hide(); } });
 
 /* ----- Item ----- */
 let cur=null, curQ=1, editIdx=null;
@@ -735,7 +757,6 @@ let geo=null;
 function setGps(state,txt,sub){
   const b=$("#gpsBtn"); b.classList.toggle("ok",state==="ok"); b.classList.toggle("busy",state==="busy");
   $("#gpsTxt").textContent=txt; $("#gpsSub").textContent=sub;
-  document.querySelectorAll("#addrBox .rq").forEach(el=>el.style.visibility = geo ? "hidden" : "visible");
 }
 $("#gpsBtn").onclick=()=>{
   if(!("geolocation" in navigator)){ setGps("","Seu aparelho não permite localização","Preencha o endereço abaixo"); return; }
@@ -778,13 +799,13 @@ $("#ckFoot").addEventListener("click",e=>{
   if(t.id==="back1") goStep(1);
   if(t.id==="back2") goStep(2);
   if(t.id==="go3"){ if(validate()){ $("#msgPrev").textContent=buildMsg(); syncAlt(); goStep(3); } }
-  if(t.id==="send"){ setTimeout(()=>toast("Pedido aberto no WhatsApp — é só enviar!"),300); }
+  if(t.id==="send"){ e.preventDefault(); askConfirm(t.href); }
 });
 $("#step2").addEventListener("submit",e=>e.preventDefault());
 $("#openCart").onclick=()=>{ goStep(1); show($("#cartSheet")); };
 
 function validate(){
-  const req = ["Nome"].concat(tipo==="entrega" && !geo ? ["Rua","Num","Bairro"] : []);
+  const req = ["Nome"].concat(tipo==="entrega" ? ["Rua","Num","Bairro"] : []);
   let ok=true, first=null;
   ["Nome","Rua","Num","Bairro"].forEach(k=>$("#f"+k).classList.remove("err"));
   req.forEach(k=>{ const el=$("#f"+k); if(!el.value.trim()){ el.classList.add("err"); ok=false; first=first||el; } });
@@ -823,6 +844,12 @@ function buildMsg(){
 }
 function waLink(num=CONFIG.whatsappPedidos){ return `https://wa.me/${num}?text=${encodeURIComponent(buildMsg())}`; }
 const fmtTel = n => { const d=String(n).replace(/\D/g,"").replace(/^55/,""); return d.length>=10 ? `(${d.slice(0,2)}) ${d.slice(2,-4)}-${d.slice(-4)}` : d; };
+function askConfirm(href){ $("#cfGo").href=href; $("#cfOv").classList.add("show"); setTimeout(()=>{ try{ $("#cfGo").focus(); }catch(e){} },50); }
+function closeConfirm(){ $("#cfOv").classList.remove("show"); }
+$("#cfBack").onclick=closeConfirm;
+$("#cfOv").addEventListener("click",e=>{ if(e.target.id==="cfOv") closeConfirm(); });
+$("#cfGo").addEventListener("click",()=>{ setTimeout(()=>{ closeConfirm(); toast("Pedido aberto no WhatsApp. Aguarde a confirmação do atendente."); },300); });
+$("#altSend").addEventListener("click",e=>{ e.preventDefault(); askConfirm($("#altSend").href); });
 function syncAlt(){
   const r=CONFIG.whatsappReserva, ok = r && r!==CONFIG.whatsappPedidos;
   $("#altBox").classList.toggle("hidden",!ok);
