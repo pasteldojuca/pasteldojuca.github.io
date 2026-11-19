@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-RDD25AhPCjdxm5jBOKhvPxou4C3FZjPyP3i1+nhJWyE='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-c4gAW9viEvH02PnN57QGRpmCkEwoyPIfTiyFHdo7iMM='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pastello & Cia — Cardápio e Pedidos</title>
@@ -958,6 +958,11 @@ if(/(^|\.)pasteldojuca\.(com\.br|github\.io)$|\.workers\.dev$/.test(location.hos
 
 /* ----- Toast ----- */
 let tt; function toast(t){ const el=$("#toast"); el.textContent=t; el.classList.add("show"); clearTimeout(tt); tt=setTimeout(()=>el.classList.remove("show"),1900); }
+
+/* ----- Sempre abrir no topo (inclusive ao atualizar com F5) ----- */
+try{ if("scrollRestoration" in history) history.scrollRestoration="manual"; }catch(e){}
+const toTop=()=>{ if(!location.hash) window.scrollTo(0,0); };
+toTop(); window.addEventListener("load",toTop); window.addEventListener("pageshow",e=>{ if(e.persisted) toTop(); });
 
 /* ----- Init ----- */
 /* ----- Cardápio pela planilha do Google ----- */
