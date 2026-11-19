@@ -1,0 +1,9 @@
+// Usado só se o site for publicado como Cloudflare Workers (arquivos estáticos).
+// No Cloudflare Pages este arquivo é ignorado.
+{
+  "name": "pasteldojuca",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "."
+  }
+}
