@@ -1,4 +1,4 @@
-// Worker do cardápio: serve o site e o painel de métricas.
+// Worker do cardápio: serve o site e a página 404.
 {
   "name": "pasteldojuca",
   "main": "worker/index.js",
@@ -7,8 +7,5 @@
     "directory": ".",
     "binding": "ASSETS"
   },
-  "d1_databases": [
-    { "binding": "DB", "database_name": "pasteldojuca-metricas", "database_id": "2b858a60-00e8-4964-8206-8397455fe11e" }
-  ],
   "observability": { "enabled": true }
 }

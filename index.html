@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Qks9sZ8p/sM/sgrGKzxkaNFt9PQlqCT+E0UYYGEsQc8='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-PwF5xXU4iBEX5q0Zs/PFRGavuaNMQiAbl2RUkD6HqVs='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pastello & Cia — Cardápio e Pedidos</title>
@@ -350,9 +350,6 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
 
     <h4>Serviços de terceiros</h4>
     <p>O site é hospedado na Cloudflare e pode carregar o cardápio de uma planilha do Google. Como em qualquer site, esses serviços podem registrar dados técnicos de acesso, como o endereço IP.</p>
-
-    <h4>Estatísticas de uso</h4>
-    <p>Não usamos cookies. Para melhorar o cardápio, registramos estatísticas anônimas: número de visitas, de onde a visita veio (por exemplo, Instagram ou QR Code), tipo de aparelho e, quando um pedido é enviado, os itens, o valor, a região e a forma de pagamento. Não registramos nome, telefone, endereço nem localização.</p>
 
     <h4>Seus direitos</h4>
     <p>Você pode apagar os dados salvos no seu aparelho a qualquer momento pelo botão abaixo. Para pedir a exclusão das mensagens do seu pedido, fale com a loja pelo WhatsApp <span data-k="tel-main">(75) 99119-8351</span>.</p>
@@ -769,7 +766,7 @@ $("#itAdd").onclick=()=>{
   }
   const ex0=cart.find(l=>l.key===key);
   if(ex0) ex0.q=Math.min(ex0.q+curQ,MAXQ); else cart.push(nl);
-  save(); hide(); toast(`${curQ}× ${cur.n} adicionado`); track("carrinho");
+  save(); hide(); toast(`${curQ}× ${cur.n} adicionado`);
 };
 
 /* ----- Carrinho ----- */
@@ -875,7 +872,7 @@ $("#ckFoot").addEventListener("click",e=>{
   if(t.id==="go2") goStep(2);
   if(t.id==="back1") goStep(1);
   if(t.id==="back2") goStep(2);
-  if(t.id==="go3"){ if(validate()){ newOrder(); $("#msgPrev").textContent=buildMsg(); syncAlt(); goStep(3); track("revisao"); } }
+  if(t.id==="go3"){ if(validate()){ newOrder(); $("#msgPrev").textContent=buildMsg(); syncAlt(); goStep(3); } }
   if(t.id==="send"){ e.preventDefault(); askConfirm(t.href); }
 });
 $("#step2").addEventListener("submit",e=>e.preventDefault());
@@ -952,9 +949,6 @@ let sending=false;
 $("#cfGo").addEventListener("click",e=>{
   if(sending){ e.preventDefault(); return; }
   sending=true; setTimeout(()=>{ sending=false; },2500);
-  track("pedido",{ v:Math.round(total()*100), e:tipo, p:pag,
-    r: tipo==="retirada" ? "Retirada" : (CONFIG.regioes[regiao]||{}).nome,
-    i: cart.map(l=>({ n: lineName(ITEMS[l.id]), q: l.q })) });
   setTimeout(()=>{ closeConfirm(); toast("Pedido aberto no WhatsApp. Aguarde a confirmação do atendente."); },300);
 });
 $("#altSend").addEventListener("click",e=>{ e.preventDefault(); askConfirm($("#altSend").href); });
@@ -1006,38 +1000,10 @@ try{ if("scrollRestoration" in history) history.scrollRestoration="manual"; }cat
 const toTop=()=>{ if(!location.hash) window.scrollTo(0,0); };
 toTop(); window.addEventListener("load",toTop); window.addEventListener("pageshow",e=>{ if(e.persisted) toTop(); });
 
-/* ----- Estatísticas anônimas (sem dados pessoais) ----- */
-const TRACK = /(^|\.)pasteldojuca\.com\.br$|\.workers\.dev$/.test(location.hostname);
-function ssGet(k){ try{ return sessionStorage.getItem(k); }catch(e){ return null; } }
-function ssSet(k,v){ try{ sessionStorage.setItem(k,v); }catch(e){} }
-function sid(){ let s=ssGet("pjuca_sid"); if(!s){ s=Math.random().toString(36).slice(2,12); ssSet("pjuca_sid",s); } return s; }
-function origem(){
-  const salvo=ssGet("pjuca_src"); if(salvo) return salvo;
-  let o="";
-  try{
-    const q=new URLSearchParams(location.search);
-    o=(q.get("utm_source")||q.get("origem")||"").toLowerCase().replace(/[^a-z0-9_-]/g,"").slice(0,30);
-    if(!o){ const r=document.referrer;
-      if(!r) o="direto";
-      else { const h=new URL(r).hostname;
-        o = /instagram\./.test(h)?"instagram" : /(facebook|fb)\./.test(h)?"facebook" : /google\./.test(h)?"google"
-          : /(whatsapp|wa\.me|l\.wl\.co)/.test(h)?"whatsapp" : h===location.hostname?"direto" : "outro"; } }
-    // limpa as tags do endereço, para quem compartilhar o link não "herdar" a origem
-    if(q.has("utm_source")||q.has("origem")){ ["utm_source","utm_medium","utm_campaign","utm_content","utm_term","origem"].forEach(k=>q.delete(k));
-      const qs=q.toString(); history.replaceState(null,"",location.pathname+(qs?"?"+qs:"")+location.hash); }
-  }catch(e){ o=o||"direto"; }
-  ssSet("pjuca_src",o); return o;
-}
-function track(tipo, extra){
-  if(!TRACK) return;
-  try{
-    if(["visita","carrinho","revisao"].includes(tipo)){ const k="pjuca_t_"+tipo; if(ssGet(k)) return; ssSet(k,"1"); }
-    const body=JSON.stringify(Object.assign({t:tipo,o:origem(),s:sid()},extra||{}));
-    if(navigator.sendBeacon && navigator.sendBeacon("/api/e", new Blob([body],{type:"text/plain"}))) return;
-    fetch("/api/e",{method:"POST",body,keepalive:true,headers:{"Content-Type":"text/plain"}}).catch(()=>{});
-  }catch(e){}
-}
-origem();
+/* Limpa marcações de link (ex.: ?utm_source=qrcode) da barra de endereço */
+try{ const q=new URLSearchParams(location.search); let m=false;
+  ["utm_source","utm_medium","utm_campaign","utm_content","utm_term","origem"].forEach(k=>{ if(q.has(k)){ q.delete(k); m=true; } });
+  if(m){ const qs=q.toString(); history.replaceState(null,"",location.pathname+(qs?"?"+qs:"")+location.hash); } }catch(e){}
 
 /* ----- Init ----- */
 /* ----- Cardápio pela planilha do Google ----- */
@@ -1091,7 +1057,6 @@ async function loadSheet(){
 }
 
 syncInfo(); renderStatus(); setInterval(renderStatus,60000);
-track("visita");
 render(); renderBar(); loadSheet();
 </script>
 </body>
