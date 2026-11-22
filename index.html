@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Qjt+j7in2RkuNM6u30MrS2kbcUepwHE0gfyb8U1aclY='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-vo9yIvjN8lZfSknITX9kUublAD5U6EcIH9fH7kP9G0s='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pastello & Cia — Cardápio e Pedidos</title>
@@ -341,6 +341,9 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
       <div class="field"><label>Forma de pagamento</label>
         <div class="seg three" id="segPag"><button type="button" data-v="Pix" class="on">Pix</button><button type="button" data-v="Cartão">Cartão</button><button type="button" data-v="Dinheiro">Dinheiro</button></div>
         <p class="hint">O pagamento é combinado direto com a loja pelo WhatsApp.</p>
+      </div>
+      <div class="field hidden" id="cartaoBox"><label id="lblCartao">Crédito ou débito? <i class="rq">*</i></label>
+        <div class="seg" id="segCartao" role="group" aria-labelledby="lblCartao"><button type="button" data-v="crédito">Crédito</button><button type="button" data-v="débito">Débito</button></div>
       </div>
       <div class="field hidden" id="trocoBox"><label for="fTroco">Troco para quanto?</label><input id="fTroco" maxlength="10" inputmode="decimal" autocomplete="off" placeholder="Ex.: 50 (deixe vazio se não precisar)"></div>
       <div class="field"><label for="fObs">Observações do pedido</label><textarea id="fObs" maxlength="300" placeholder="Algo que a gente precisa saber?"></textarea></div>
@@ -856,7 +859,7 @@ $("#lines").addEventListener("click",e=>{
 });
 
 /* ----- Checkout ----- */
-let step=1, tipo="entrega", pag="Pix";
+let step=1, tipo="entrega", pag="Pix", cartao="";
 const cust = store.get("cliente",{});
 if(cust && cust.Nome) $("#fLembrar").checked=true;
 ["Nome","Rua","Num","Bairro","Ref"].forEach(k=>{ if(cust[k]) $("#f"+k).value=cust[k]; });
@@ -867,7 +870,8 @@ function seg(el,cb){ el.addEventListener("click",e=>{ const b=e.target.closest("
 seg($("#segTipo"),v=>{ tipo=v; syncTipo(); updSub(); });
 seg($("#segReg"),v=>{ regiao=+v; $("#segReg").classList.remove("err"); updSub(); });
 function updSub(){ if(step===2) $("#ckSub").textContent=`Total: ${brl(total())}${feePending()?" + taxa de entrega":""}`; }
-seg($("#segPag"),v=>{ pag=v; $("#trocoBox").classList.toggle("hidden",v!=="Dinheiro"); });
+seg($("#segPag"),v=>{ pag=v; $("#trocoBox").classList.toggle("hidden",v!=="Dinheiro"); $("#cartaoBox").classList.toggle("hidden",v!=="Cartão"); });
+seg($("#segCartao"),v=>{ cartao=v; $("#segCartao").classList.remove("err"); });
 function syncTipo(){
   $("#segTipo").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x.dataset.v===tipo));
   $("#addrBox").classList.toggle("hidden",tipo!=="entrega"); $("#pickBox").classList.toggle("hidden",tipo!=="retirada");
@@ -933,6 +937,7 @@ function validate(){
     $("#segReg").classList.add("err"); $("#segReg").scrollIntoView({block:"center",behavior:"smooth"});
     toast("Escolha a região de entrega"); return false;
   }
+  if(pag==="Cartão" && !cartao){ const c=$("#segCartao"); c.classList.add("err"); c.scrollIntoView({block:"center",behavior:"smooth"}); c.querySelector("button").focus({preventScroll:true}); toast("Escolha se o cartão é de crédito ou débito"); return false; }
   if(pag==="Dinheiro" && $("#fTroco").value.trim()){
     const t=trocoVal(), min=total();
     if(!isFinite(t) || t<=0){ $("#fTroco").classList.add("err"); $("#fTroco").focus(); toast("Digite só o valor do troco, ex.: 50"); return false; }
@@ -978,7 +983,7 @@ function buildMsg(){
     if(geo) m+=`📍 Localização (GPS, ~${geo.acc} m):\nhttps://maps.google.com/?q=${geo.lat},${geo.lng}\n`;
     m+=`\n`;
   }
-  m+=`*Pagamento:* ${pag}`;
+  m+=`*Pagamento:* ${pag==="Cartão" && cartao ? "Cartão de "+cartao : pag}`;
   if(pag==="Dinheiro"){ const t=trocoVal(); m+= t?` (troco para ${brl(t)})`:" (sem troco)"; }
   m+=`\n`;
   if(v("Obs")) m+=`*Observações:* ${v("Obs")}\n`;
