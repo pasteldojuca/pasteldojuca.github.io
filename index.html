@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-vo9yIvjN8lZfSknITX9kUublAD5U6EcIH9fH7kP9G0s='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-g/x4TPCy46D4c+m5YXbo0rX8Br9gBiflmqDEE1da68M='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pastello & Cia — Cardápio e Pedidos</title>
@@ -85,6 +85,7 @@ section.cat{padding-top:26px;scroll-margin-top:118px}
 .item:hover{border-color:#3b3b3b}
 .item:active{transform:scale(.99)}
 .item.off{opacity:.45;cursor:not-allowed}
+.item .sd{display:inline-block;margin-top:6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--yellow);border:1px solid color-mix(in oklch,var(--yellow) 45%,transparent);border-radius:6px;padding:2px 6px}
 .item.off .add{background:var(--panel2);color:var(--muted);width:auto;padding:0 10px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
 .edit{color:var(--yellow);font-weight:600;font-size:13.5px;margin-top:4px;text-decoration:underline;text-underline-offset:3px}
 .item .t{flex:1;min-width:0}
@@ -461,6 +462,10 @@ const CONFIG = {
   abre: "18:30", fecha: "00:30",       // horário do delivery
   diaFechado: 2,                       // 0=dom, 1=seg, 2=ter…
   fuso: "America/Bahia",
+  // Itens vendidos só em alguns dias. Formato: "Categoria / Item": [dias]  (0=dom, 1=seg … 5=sex, 6=sáb)
+  // Ex.: "Pastéis / Camarão": [6, 0]  → só sábado e domingo. A madrugada conta como o dia anterior.
+  soEmDias: {
+  },
   // Link CSV da planilha do Google (Arquivo → Compartilhar → Publicar na web → CSV).
   // Vazio = usa o cardápio escrito abaixo.
   planilhaCSV: ""
@@ -617,11 +622,14 @@ function buildMenu(cats){
       o.g = o.g || c.g || null; o.cat = c;
       let id=c.id+"--"+slug(o.n), k=2; while(ITEMS[id]) id=c.id+"--"+slug(o.n)+"-"+(k++);
       o.id = id;
+      const fix = CONFIG.soEmDias[`${slug(c.t)}/${slug(o.n)}`];
+      if(!o.dias && Array.isArray(fix)) o.dias = fix.filter(d=>d>=0&&d<=6);
       ITEMS[o.id] = o; return o;
     });
   });
   CATS = cats;
 }
+CONFIG.soEmDias = Object.fromEntries(Object.entries(CONFIG.soEmDias||{}).map(([k,v])=>{ const [a,b]=k.split("/"); return [`${slug(a)}/${slug(b||"")}`, v]; }));
 buildMenu(MENU);
 function groupOf(it){ return it.ask ? {title:"Detalhe", type:"text", ph:it.ask} : (it.g && GROUPS[it.g]) || null; }
 
@@ -636,7 +644,7 @@ function sanitizeCart(list){
   const out=[];
   list.forEach(l=>{
     if(!l || typeof l!=="object") return;
-    const it=ITEMS[l.id]; if(!it || it.off) return;
+    const it=ITEMS[l.id]; if(!it || it.off || !hojeTem(it)) return;
     const q=Math.floor(+l.q); if(!(q>=1)) return;
     const g=groupOf(it); const ex=[]; const sel=[]; let add=0; let txt="";
     if(g && g.type!=="text" && Array.isArray(l.sel)){
@@ -683,6 +691,18 @@ function isOpen(){
   if (min < f) return ((wd+6)%7) !== CONFIG.diaFechado;   // madrugada conta como o dia anterior
   return false;
 }
+/* Dia de funcionamento: a madrugada (antes das 5h) ainda é a noite anterior */
+function opDay(){ const {wd,min}=nowLocal(); return min < 300 ? (wd+6)%7 : wd; }
+const DIAS_AB=["dom","seg","ter","qua","qui","sex","sáb"];
+function diasTxt(a){ const o=[1,2,3,4,5,6,0].filter(d=>a.includes(d)).map(d=>DIAS_AB[d]); return o.length>1 ? o.slice(0,-1).join(", ")+" e "+o[o.length-1] : (o[0]||""); }
+function hojeTem(it){ return !it.dias || !it.dias.length || it.dias.includes(opDay()); }
+function parseDias(t){
+  const x=slug(t); if(!x) return null;
+  if(/fim-?de-?semana|fds/.test(x)) return [6,0];
+  const m={dom:0,seg:1,ter:2,qua:3,qui:4,sex:5,sab:6}, out=[];
+  x.split("-").forEach(w=>{ const k=w.slice(0,3); if(k in m && !out.includes(m[k])) out.push(m[k]); });
+  return out.length ? out : null;
+}
 function closedMsg(){
   const {wd,min}=nowLocal();
   if (wd===CONFIG.diaFechado && min>=toMin(CONFIG.fecha)) return `Hoje (${DIAS[CONFIG.diaFechado]}) não abrimos — voltamos amanhã às ${hh(CONFIG.abre)}`;
@@ -704,9 +724,10 @@ function render(filter=""){
     html += `<section class="cat" id="cat-${c.id}"><div class="cat-h"><h2>${esc(c.t)}${c.sub?`<small>${esc(c.sub)}</small>`:""}</h2><div class="arrs"><button class="arr" data-d="-1" aria-label="Itens anteriores de ${esc(c.t)}" disabled>${ICON_ARR}</button><button class="arr" data-d="1" aria-label="Próximos itens de ${esc(c.t)}">${ICON_ARR}</button></div></div>${c.note?`<p class="note">${esc(c.note)}</p>`:""}<div class="items">`;
     list.forEach(i=>{
       const n = cart.filter(l=>l.id===i.id).reduce((s,l)=>s+l.q,0);
-      html += i.off
-        ? `<button class="item off" data-id="${i.id}" aria-disabled="true"><div class="t"><div class="n">${esc(i.n)}</div>${i.d?`<div class="d">${esc(i.d)}</div>`:""}<div class="p">${brl(i.p)}</div></div><span class="add">Esgotado</span></button>`
-        : `<button class="item" data-id="${i.id}"><div class="t"><div class="n">${esc(i.n)}</div>${i.d?`<div class="d">${esc(i.d)}</div>`:""}<div class="p">${brl(i.p)}</div></div><span class="add" aria-hidden="true">${ICON_PLUS}${n?`<b>${n}</b>`:""}</span></button>`;
+      const fora = !i.off && !hojeTem(i);
+      html += (i.off || fora)
+        ? `<button class="item off${fora?" dia":""}" data-id="${i.id}" aria-disabled="true"><div class="t"><div class="n">${esc(i.n)}</div>${i.d?`<div class="d">${esc(i.d)}</div>`:""}<div class="p">${brl(i.p)}</div></div><span class="add">${fora?"Só "+esc(diasTxt(i.dias)):"Esgotado"}</span></button>`
+        : `<button class="item" data-id="${i.id}"><div class="t"><div class="n">${esc(i.n)}</div>${i.d?`<div class="d">${esc(i.d)}</div>`:""}${i.dias&&i.dias.length?`<div class="sd">Só ${esc(diasTxt(i.dias))}</div>`:""}<div class="p">${brl(i.p)}</div></div><span class="add" aria-hidden="true">${ICON_PLUS}${n?`<b>${n}</b>`:""}</span></button>`;
     });
     html += `</div></section>`;
   });
@@ -755,7 +776,7 @@ let qt; $("#q").addEventListener("input",e=>{ clearTimeout(qt); qt=setTimeout(()
 $("#menu").addEventListener("click",e=>{
   const ar=e.target.closest(".arr");
   if(ar){ const r=ar.closest("section.cat").querySelector(".items"); r.scrollBy({left:Number(ar.dataset.d)*Math.max(240,r.clientWidth*.85),behavior:matchMedia("(prefers-reduced-motion:reduce)").matches?"auto":"smooth"}); return; }
-  const b=e.target.closest(".item"); if(!b) return; if(b.classList.contains("off")){ toast("Item esgotado no momento"); return; } openItem(b.dataset.id); });
+  const b=e.target.closest(".item"); if(!b) return; if(b.classList.contains("off")){ const it=ITEMS[b.dataset.id]; toast(b.classList.contains("dia") && it ? `Disponível só ${diasTxt(it.dias)}` : "Item esgotado no momento"); return; } openItem(b.dataset.id); });
 
 /* ----- Sheets ----- */
 let openSheet=null;
@@ -924,7 +945,7 @@ $("#ckFoot").addEventListener("click",e=>{
   if(t.id==="go2") goStep(2);
   if(t.id==="back1") goStep(1);
   if(t.id==="back2") goStep(2);
-  if(t.id==="go3"){ if(validate()){ newOrder(); $("#msgPrev").textContent=buildMsg(); syncAlt(); goStep(3); } }
+  if(t.id==="go3"){ if(validate()){ newOrder(); $("#msgPrev").textContent=buildMsg().replace(/https:\/\/wa\.me\/\?text=\S+/,"[link com endereço, localização e valor]"); syncAlt(); goStep(3); } }
   if(t.id==="send"){ e.preventDefault(); askConfirm(t.href); }
 });
 $("#step2").addEventListener("submit",e=>e.preventDefault());
@@ -987,9 +1008,25 @@ function buildMsg(){
   if(pag==="Dinheiro"){ const t=trocoVal(); m+= t?` (troco para ${brl(t)})`:" (sem troco)"; }
   m+=`\n`;
   if(v("Obs")) m+=`*Observações:* ${v("Obs")}\n`;
+  if(tipo==="entrega") m+=`\n*PARA O ENTREGADOR* (uso da loja)\nToque no link, escolha o entregador e envie:\nhttps://wa.me/?text=${encodeURIComponent(msgEntregador())}\n`;
   m+=`\n━━━━━━━━━━━━\n*Subtotal:* ${brl(subtotal())}\n`;
   if(tipo==="entrega") m+=`*Taxa de entrega:* ${feeTxt()}\n`;
   m+=`*TOTAL:* ${brl(total())}`;
+  return m;
+}
+/* Versão curta do pedido, para a loja repassar ao entregador sem editar nada */
+function msgEntregador(){
+  const v=k=>clean($("#f"+k).value);
+  let m=`*Entrega #${orderId}* · Pastello & Cia\n`;
+  if(v("Nome")) m+=`Cliente: ${v("Nome")}\n`;
+  const ln1=[v("Rua"),v("Num")].filter(Boolean).join(", ");
+  const reg=CONFIG.regioes[regiao] ? CONFIG.regioes[regiao].nome : "";
+  m+=`Endereço: ${[ln1, v("Bairro"), reg].filter(Boolean).join(" · ")}\n`;
+  if(v("Ref")) m+=`Ref.: ${v("Ref")}\n`;
+  if(geo) m+=`Mapa: https://maps.google.com/?q=${geo.lat},${geo.lng}\n`;
+  let pg = pag==="Cartão" ? `Cartão de ${cartao||"crédito/débito"} (levar maquininha)` : pag;
+  if(pag==="Dinheiro"){ const t=trocoVal(); pg += t ? ` (troco para ${brl(t)} · levar troco de ${brl(Math.round((t-total())*100)/100)})` : " (sem troco)"; }
+  m+=`Pagamento: ${pg}\n*Valor: ${brl(total())}*`;
   return m;
 }
 function waLink(num=CONFIG.whatsappPedidos){ return `https://wa.me/${num}?text=${encodeURIComponent(buildMsg())}`; }
@@ -1100,7 +1137,7 @@ async function loadSheet(){
       if(!c){ const b=base[slug(cn)]||{}; c={t:cn, sub:b.sub, note:b.note, tag:b.tag||null, g:b.g, items:[]}; map[slug(cn)]=c; cats.push(c); }
       const disp = ai<0 ? "" : slug(r[ai]||"");
       const old = (b=>b && b.items.find(x=>slug(x.n)===slug(nm)))(base[slug(cn)]);
-      c.items.push({n:nm, p:Math.round(p*100)/100, d:di<0?"":(r[di]||"").trim().slice(0,250), ask:qi<0?"":(r[qi]||"").trim().slice(0,60), g: old?old.g:null, off:["nao","n","esgotado","0","false","indisponivel"].includes(disp)});
+      c.items.push({n:nm, p:Math.round(p*100)/100, d:di<0?"":(r[di]||"").trim().slice(0,250), ask:qi<0?"":(r[qi]||"").trim().slice(0,60), g: old?old.g:null, off:["nao","n","esgotado","0","false","indisponivel"].includes(disp), dias: parseDias(ai<0?"":r[ai]||"") || (old?old.dias:null)});
     });
     if(!cats.length) throw new Error("vazia");
     buildMenu(cats); syncInfo();
