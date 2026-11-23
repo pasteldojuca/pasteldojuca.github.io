@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-g/x4TPCy46D4c+m5YXbo0rX8Br9gBiflmqDEE1da68M='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Jo9zTrw/kBbhCA/VwxvpdSyGAuzujcMf9kteJeHBnpk='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pastello & Cia — Cardápio e Pedidos</title>
@@ -327,6 +327,7 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
         <div class="seg" id="segTipo"><button type="button" data-v="entrega" class="on">Entrega</button><button type="button" data-v="retirada">Retirar no local</button></div>
       </div>
       <div id="addrBox">
+        <div class="field"><label for="fTel">Telefone / WhatsApp <i class="rq">*</i></label><input id="fTel" type="tel" maxlength="20" inputmode="tel" autocomplete="tel-national" placeholder="(75) 99999-9999"><p class="hint">Vai só para o entregador, caso precise falar com você.</p></div>
         <div class="field"><label>Região de entrega <i class="rq">*</i></label>
           <div class="seg three reg" id="segReg"></div>
         </div>
@@ -371,7 +372,7 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
     <p>Este site é o cardápio digital da Pastello &amp; Cia — O Pastel do Juca. Ele serve para você montar seu pedido e enviá-lo pelo WhatsApp.</p>
 
     <h4>Quais dados usamos</h4>
-    <p>Para montar o pedido, pedimos seu nome, endereço de entrega, forma de pagamento e observações. Se você tocar em "Enviar minha localização", o navegador pede sua permissão e a coordenada do GPS é incluída apenas na mensagem do pedido — ela não é salva no aparelho nem em nenhum servidor. Não pedimos CPF, e-mail, senha nem dados de cartão.</p>
+    <p>Para montar o pedido, pedimos seu nome, telefone e endereço de entrega, forma de pagamento e observações. Nas entregas, a loja repassa ao entregador só o seu nome, telefone, endereço e a forma de pagamento. Se você tocar em "Enviar minha localização", o navegador pede sua permissão e a coordenada do GPS é incluída apenas na mensagem do pedido — ela não é salva no aparelho nem em nenhum servidor. Não pedimos CPF, e-mail, senha nem dados de cartão.</p>
 
     <h4>Onde seus dados ficam</h4>
     <ul>
@@ -883,7 +884,7 @@ $("#lines").addEventListener("click",e=>{
 let step=1, tipo="entrega", pag="Pix", cartao="";
 const cust = store.get("cliente",{});
 if(cust && cust.Nome) $("#fLembrar").checked=true;
-["Nome","Rua","Num","Bairro","Ref"].forEach(k=>{ if(cust[k]) $("#f"+k).value=cust[k]; });
+["Nome","Tel","Rua","Num","Bairro","Ref"].forEach(k=>{ if(cust[k]) $("#f"+k).value=cust[k]; });
 if(cust.tipo) tipo=cust.tipo;
 if(cust.regiao!=null && CONFIG.regioes[cust.regiao]) regiao=+cust.regiao;
 renderRegioes();
@@ -945,12 +946,20 @@ $("#ckFoot").addEventListener("click",e=>{
   if(t.id==="go2") goStep(2);
   if(t.id==="back1") goStep(1);
   if(t.id==="back2") goStep(2);
-  if(t.id==="go3"){ if(validate()){ newOrder(); $("#msgPrev").textContent=buildMsg().replace(/https:\/\/wa\.me\/\?text=\S+/,"[link com endereço, localização e valor]"); syncAlt(); goStep(3); } }
+  if(t.id==="go3"){ if(validate()){ newOrder(); $("#msgPrev").textContent=buildMsg().replace(/https:\/\/wa\.me\/\?text=\S+/,"[link com contato, localização e pagamento]"); syncAlt(); goStep(3); } }
   if(t.id==="send"){ e.preventDefault(); askConfirm(t.href); }
 });
 $("#step2").addEventListener("submit",e=>e.preventDefault());
 $("#openCart").onclick=()=>{ goStep(1); show($("#cartSheet")); };
 
+/* Telefone do cliente: aceita com ou sem DDD (sem DDD assume 75) */
+function telFmt(t){
+  let d=String(t||"").replace(/\D/g,""); if(d.length>11 && d.startsWith("55")) d=d.slice(2);
+  if(d.length>=12 && d.startsWith("0")) d=d.replace(/^0+/,"");
+  if(d.length===8||d.length===9) d="75"+d;
+  if(d.length<10||d.length>11) return "";
+  return `(${d.slice(0,2)}) ${d.slice(2,-4)}-${d.slice(-4)}`;
+}
 function trocoVal(){ const t=$("#fTroco").value.trim(); if(!t) return 0; const n=money(t); return isFinite(n)?Math.round(n*100)/100:NaN; }
 function validate(){
   $("#fTroco").classList.remove("err");
@@ -964,12 +973,13 @@ function validate(){
     if(!isFinite(t) || t<=0){ $("#fTroco").classList.add("err"); $("#fTroco").focus(); toast("Digite só o valor do troco, ex.: 50"); return false; }
     if(t<min){ $("#fTroco").classList.add("err"); $("#fTroco").focus(); toast(`O troco precisa ser para pelo menos ${brl(min)}`); return false; }
   }
-  const req = ["Nome"].concat(tipo==="entrega" ? ["Rua","Num","Bairro"] : []);
+  const req = ["Nome"].concat(tipo==="entrega" ? ["Tel","Rua","Num","Bairro"] : []);
   let ok=true, first=null;
-  ["Nome","Rua","Num","Bairro"].forEach(k=>$("#f"+k).classList.remove("err"));
+  ["Nome","Tel","Rua","Num","Bairro"].forEach(k=>$("#f"+k).classList.remove("err"));
   req.forEach(k=>{ const el=$("#f"+k); if(!el.value.trim()){ el.classList.add("err"); ok=false; first=first||el; } });
   if(!ok){ first.focus(); toast("Preencha os campos obrigatórios"); return false; }
-  if($("#fLembrar").checked){ const c={tipo,regiao}; ["Nome","Rua","Num","Bairro","Ref"].forEach(k=>c[k]=$("#f"+k).value.trim()); store.set("cliente",c); }
+  if(tipo==="entrega" && !telFmt($("#fTel").value)){ $("#fTel").classList.add("err"); $("#fTel").focus(); toast("Confira o telefone, ex.: (75) 99999-9999"); return false; }
+  if($("#fLembrar").checked){ const c={tipo,regiao}; ["Nome","Tel","Rua","Num","Bairro","Ref"].forEach(k=>c[k]=$("#f"+k).value.trim()); store.set("cliente",c); }
   else { try{ localStorage.removeItem("pjuca_cliente"); }catch(e){} }
   return true;
 }
@@ -986,6 +996,7 @@ function buildMsg(){
   const v=k=>clean($("#f"+k).value);
   let m=`*NOVO PEDIDO — Pastello & Cia*\n*Pedido #${orderId}* · ${orderWhen}\n\n`;
   m+=`*Cliente:* ${v("Nome")}\n`;
+  if(tipo==="entrega" && telFmt($("#fTel").value)) m+=`*Telefone:* ${telFmt($("#fTel").value)}\n`;
   m+=`*Tipo:* ${tipo==="entrega"?"Entrega":"Retirada no local"}\n\n`;
   m+=`*ITENS*\n`;
   cart.forEach(l=>{ const it=ITEMS[l.id];
@@ -1008,7 +1019,7 @@ function buildMsg(){
   if(pag==="Dinheiro"){ const t=trocoVal(); m+= t?` (troco para ${brl(t)})`:" (sem troco)"; }
   m+=`\n`;
   if(v("Obs")) m+=`*Observações:* ${v("Obs")}\n`;
-  if(tipo==="entrega") m+=`\n*PARA O ENTREGADOR* (uso da loja)\nToque no link, escolha o entregador e envie:\nhttps://wa.me/?text=${encodeURIComponent(msgEntregador())}\n`;
+  if(tipo==="entrega") m+=`\n*PARA O ENTREGADOR* (uso da loja)\nToque no link, escolha o entregador e envie (vai só contato, localização e pagamento):\nhttps://wa.me/?text=${encodeURIComponent(msgEntregador())}\n`;
   m+=`\n━━━━━━━━━━━━\n*Subtotal:* ${brl(subtotal())}\n`;
   if(tipo==="entrega") m+=`*Taxa de entrega:* ${feeTxt()}\n`;
   m+=`*TOTAL:* ${brl(total())}`;
@@ -1018,15 +1029,16 @@ function buildMsg(){
 function msgEntregador(){
   const v=k=>clean($("#f"+k).value);
   let m=`*Entrega #${orderId}* · Pastello & Cia\n`;
-  if(v("Nome")) m+=`Cliente: ${v("Nome")}\n`;
+  m+=`Contato: ${[v("Nome"), telFmt($("#fTel").value)].filter(Boolean).join(" · ")}\n`;
   const ln1=[v("Rua"),v("Num")].filter(Boolean).join(", ");
   const reg=CONFIG.regioes[regiao] ? CONFIG.regioes[regiao].nome : "";
   m+=`Endereço: ${[ln1, v("Bairro"), reg].filter(Boolean).join(" · ")}\n`;
   if(v("Ref")) m+=`Ref.: ${v("Ref")}\n`;
-  if(geo) m+=`Mapa: https://maps.google.com/?q=${geo.lat},${geo.lng}\n`;
+  if(geo) m+=`Localização: https://maps.google.com/?q=${geo.lat},${geo.lng}\n`;
   let pg = pag==="Cartão" ? `Cartão de ${cartao||"crédito/débito"} (levar maquininha)` : pag;
-  if(pag==="Dinheiro"){ const t=trocoVal(); pg += t ? ` (troco para ${brl(t)} · levar troco de ${brl(Math.round((t-total())*100)/100)})` : " (sem troco)"; }
-  m+=`Pagamento: ${pg}\n*Valor: ${brl(total())}*`;
+  pg += ` · *${brl(total())}*`;
+  if(pag==="Dinheiro"){ const t=trocoVal(); pg += t ? ` (troco para ${brl(t)}: levar ${brl(Math.round((t-total())*100)/100)})` : " (sem troco)"; }
+  m+=`Pagamento: ${pg}`;
   return m;
 }
 function waLink(num=CONFIG.whatsappPedidos){ return `https://wa.me/${num}?text=${encodeURIComponent(buildMsg())}`; }
