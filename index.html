@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Jo9zTrw/kBbhCA/VwxvpdSyGAuzujcMf9kteJeHBnpk='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-eeaCj1pDsUKahB6V7RzxwY6vCbY9WprOczG+yzj/uNw='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pastello & Cia — Cardápio e Pedidos</title>
@@ -985,16 +985,14 @@ function validate(){
 }
 // Remove formatação do WhatsApp e quebras de linha de tudo que o cliente digita
 const clean = t => String(t||"").replace(/[*_~`>]/g,"").replace(/\s*[\r\n]+\s*/g," · ").replace(/\s{2,}/g," ").trim();
-let orderId="", orderWhen="";
+let orderWhen="";
 function newOrder(){
-  const a=new Uint32Array(1); try{ crypto.getRandomValues(a); }catch(e){ a[0]=Math.random()*1e9; }
-  orderId = String(1000 + a[0]%9000);
   try{ orderWhen = new Intl.DateTimeFormat("pt-BR",{timeZone:CONFIG.fuso,day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}).format(new Date()).replace(",",""); }
   catch(e){ const d=new Date(); orderWhen=d.toLocaleString("pt-BR").slice(0,16); }
 }
 function buildMsg(){
   const v=k=>clean($("#f"+k).value);
-  let m=`*NOVO PEDIDO — Pastello & Cia*\n*Pedido #${orderId}* · ${orderWhen}\n\n`;
+  let m=`*NOVO PEDIDO — Pastello & Cia*\n${orderWhen}\n\n`;
   m+=`*Cliente:* ${v("Nome")}\n`;
   if(tipo==="entrega" && telFmt($("#fTel").value)) m+=`*Telefone:* ${telFmt($("#fTel").value)}\n`;
   m+=`*Tipo:* ${tipo==="entrega"?"Entrega":"Retirada no local"}\n\n`;
@@ -1028,7 +1026,7 @@ function buildMsg(){
 /* Versão curta do pedido, para a loja repassar ao entregador sem editar nada */
 function msgEntregador(){
   const v=k=>clean($("#f"+k).value);
-  let m=`*Entrega #${orderId}* · Pastello & Cia\n`;
+  let m=`*ENTREGA* · Pastello & Cia\n`;
   m+=`Contato: ${[v("Nome"), telFmt($("#fTel").value)].filter(Boolean).join(" · ")}\n`;
   const ln1=[v("Rua"),v("Num")].filter(Boolean).join(", ");
   const reg=CONFIG.regioes[regiao] ? CONFIG.regioes[regiao].nome : "";
