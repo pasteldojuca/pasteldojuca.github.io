@@ -1,4 +1,4 @@
-// Worker do cardápio: serve o site e a página 404.
+// Worker do cardápio: serve o site e os links curtos para o entregador.
 {
   "name": "pasteldojuca",
   "main": "worker/index.js",
@@ -7,5 +7,11 @@
     "directory": ".",
     "binding": "ASSETS"
   },
+  "kv_namespaces": [
+    { "binding": "ENTREGAS", "id": "ac2dbcac92304f4b9e092874be157ccd" }
+  ],
+  "ratelimits": [
+    { "name": "LIMITE", "namespace_id": "1001", "simple": { "limit": 20, "period": 60 } }
+  ],
   "observability": { "enabled": true }
 }

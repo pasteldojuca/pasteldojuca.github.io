@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-eeaCj1pDsUKahB6V7RzxwY6vCbY9WprOczG+yzj/uNw='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-7xZsZhuey/+bdoi+21XrG36qXw5qjVMSjTHNQUWZddc='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pastello & Cia — Cardápio e Pedidos</title>
@@ -372,11 +372,12 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
     <p>Este site é o cardápio digital da Pastello &amp; Cia — O Pastel do Juca. Ele serve para você montar seu pedido e enviá-lo pelo WhatsApp.</p>
 
     <h4>Quais dados usamos</h4>
-    <p>Para montar o pedido, pedimos seu nome, telefone e endereço de entrega, forma de pagamento e observações. Nas entregas, a loja repassa ao entregador só o seu nome, telefone, endereço e a forma de pagamento. Se você tocar em "Enviar minha localização", o navegador pede sua permissão e a coordenada do GPS é incluída apenas na mensagem do pedido — ela não é salva no aparelho nem em nenhum servidor. Não pedimos CPF, e-mail, senha nem dados de cartão.</p>
+    <p>Para montar o pedido, pedimos seu nome, telefone e endereço de entrega, forma de pagamento e observações. Se você tocar em "Enviar minha localização", o navegador pede sua permissão antes de incluir a coordenada do GPS no pedido. Não pedimos CPF, e-mail, senha nem dados de cartão.</p>
 
     <h4>Onde seus dados ficam</h4>
     <ul>
       <li><strong>No seu aparelho:</strong> o carrinho fica salvo no navegador do seu celular ou computador. Seu nome e endereço só ficam salvos se você marcar "Lembrar meu nome e endereço neste aparelho", para agilizar o próximo pedido. Esses dados não são enviados a nenhum servidor nosso.</li>
+      <li><strong>Link do entregador (só em entregas):</strong> para a loja repassar a entrega sem copiar o pedido inteiro, guardamos no servidor do site (Cloudflare) apenas seu nome, telefone, endereço, localização e forma de pagamento, acessíveis só por um link com código aleatório. Esses dados são apagados automaticamente em até 12 horas. Os itens do pedido não são guardados.</li>
       <li><strong>No WhatsApp da loja:</strong> ao tocar em "Enviar no WhatsApp", a mensagem com o pedido é enviada por você para a loja. Ela fica no histórico da conversa, como qualquer outra mensagem, e segue as regras de privacidade do próprio WhatsApp.</li>
     </ul>
 
@@ -940,13 +941,13 @@ function foot(){
   if(step===2) f.innerHTML=`<button class="btn ghost" id="back1">Voltar</button><button class="btn" id="go3">Revisar pedido</button>`;
   if(step===3) f.innerHTML=`<button class="btn ghost" id="back2">Voltar</button><a class="btn wa" id="send" href="${waLink()}" target="_blank" rel="noopener">${ICON_WA} Enviar no WhatsApp</a>`;
 }
-$("#ckFoot").addEventListener("click",e=>{
-  const t=e.target.closest("button,a"); if(!t) return;
+$("#ckFoot").addEventListener("click",async e=>{
+  const t=e.target.closest("button,a"); if(!t || t.disabled) return;
   if(t.hasAttribute("data-close2")) hide();
   if(t.id==="go2") goStep(2);
   if(t.id==="back1") goStep(1);
   if(t.id==="back2") goStep(2);
-  if(t.id==="go3"){ if(validate()){ newOrder(); $("#msgPrev").textContent=buildMsg().replace(/https:\/\/wa\.me\/\?text=\S+/,"[link com contato, localização e pagamento]"); syncAlt(); goStep(3); } }
+  if(t.id==="go3"){ if(validate()){ newOrder(); t.disabled=true; await linkEntregador(); t.disabled=false; $("#msgPrev").textContent=buildMsg(); syncAlt(); goStep(3); } }
   if(t.id==="send"){ e.preventDefault(); askConfirm(t.href); }
 });
 $("#step2").addEventListener("submit",e=>e.preventDefault());
@@ -1017,11 +1018,26 @@ function buildMsg(){
   if(pag==="Dinheiro"){ const t=trocoVal(); m+= t?` (troco para ${brl(t)})`:" (sem troco)"; }
   m+=`\n`;
   if(v("Obs")) m+=`*Observações:* ${v("Obs")}\n`;
-  if(tipo==="entrega") m+=`\n*PARA O ENTREGADOR* (uso da loja)\nToque no link, escolha o entregador e envie (vai só contato, localização e pagamento):\nhttps://wa.me/?text=${encodeURIComponent(msgEntregador())}\n`;
+  if(tipo==="entrega") m+=`\n*PARA O ENTREGADOR* (uso da loja)\nToque no link, escolha o entregador e envie:\n${entregaURL || "https://wa.me/?text="+encodeURIComponent(msgEntregador())}\n`;
   m+=`\n━━━━━━━━━━━━\n*Subtotal:* ${brl(subtotal())}\n`;
   if(tipo==="entrega") m+=`*Taxa de entrega:* ${feeTxt()}\n`;
   m+=`*TOTAL:* ${brl(total())}`;
   return m;
+}
+/* Link curto do entregador: o servidor guarda a mensagem por 12 h e devolve um código.
+   Se falhar (sem internet, servidor fora), o pedido usa o link longo de antes. */
+let entregaURL="", entregaTxt="";
+async function linkEntregador(){
+  if(tipo!=="entrega"){ entregaURL=""; return; }
+  const t=msgEntregador(); if(t===entregaTxt && entregaURL) return;
+  entregaURL=""; entregaTxt="";
+  if(!/^https?:$/.test(location.protocol)) return;
+  try{
+    const ctl=new AbortController(), tm=setTimeout(()=>ctl.abort(),3500);
+    const r=await fetch("/api/entrega",{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:t,signal:ctl.signal,cache:"no-store"});
+    clearTimeout(tm);
+    if(r.ok){ const j=await r.json(); if(j && /^[A-Za-z0-9]{10}$/.test(j.id)){ entregaURL=`${location.origin}/e/${j.id}`; entregaTxt=t; } }
+  }catch(e){}
 }
 /* Versão curta do pedido, para a loja repassar ao entregador sem editar nada */
 function msgEntregador(){
