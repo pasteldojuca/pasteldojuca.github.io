@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-7xZsZhuey/+bdoi+21XrG36qXw5qjVMSjTHNQUWZddc='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-nPma794GdP1HJY6Q8BLJUSbnp9jzjG+2wUelaDf8duY='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pastello & Cia — Cardápio e Pedidos</title>
@@ -449,6 +449,7 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
 /* =========================================================
    CONFIGURAÇÃO — edite aqui
    ========================================================= */
+const FDS = [6, 0];   // fim de semana: sábado e domingo
 const CONFIG = {
   loja: "Pastello & Cia — O Pastel do Juca",
   whatsappPedidos: "5575991198351",   // número que recebe os pedidos
@@ -467,6 +468,11 @@ const CONFIG = {
   // Itens vendidos só em alguns dias. Formato: "Categoria / Item": [dias]  (0=dom, 1=seg … 5=sex, 6=sáb)
   // Ex.: "Pastéis / Camarão": [6, 0]  → só sábado e domingo. A madrugada conta como o dia anterior.
   soEmDias: {
+    "Pastéis / Escondidinho": FDS, "Pastéis / Oxente": FDS, "Pastéis / Pastello": FDS,
+    "Pastéis / Pepperoni": FDS, "Pastéis / Strogonoff": FDS, "Pastéis / Camarão": FDS,
+    "Pastéis / Costela c/ Cream Cheese": FDS,
+    "Salgados / Enroladinho de Salsicha": FDS, "Salgados / Kibe": FDS, "Salgados / Risole": FDS,
+    "Coxinhas / Nordestina": FDS, "Coxinhas / Costela": FDS, "Coxinhas / Camarão": FDS
   },
   // Link CSV da planilha do Google (Arquivo → Compartilhar → Publicar na web → CSV).
   // Vazio = usa o cardápio escrito abaixo.
@@ -631,7 +637,7 @@ function buildMenu(cats){
   });
   CATS = cats;
 }
-CONFIG.soEmDias = Object.fromEntries(Object.entries(CONFIG.soEmDias||{}).map(([k,v])=>{ const [a,b]=k.split("/"); return [`${slug(a)}/${slug(b||"")}`, v]; }));
+CONFIG.soEmDias = Object.fromEntries(Object.entries(CONFIG.soEmDias||{}).map(([k,v])=>{ const i=k.indexOf("/"); return [`${slug(k.slice(0,i))}/${slug(k.slice(i+1))}`, v]; }));
 buildMenu(MENU);
 function groupOf(it){ return it.ask ? {title:"Detalhe", type:"text", ph:it.ask} : (it.g && GROUPS[it.g]) || null; }
 
@@ -696,7 +702,7 @@ function isOpen(){
 /* Dia de funcionamento: a madrugada (antes das 5h) ainda é a noite anterior */
 function opDay(){ const {wd,min}=nowLocal(); return min < 300 ? (wd+6)%7 : wd; }
 const DIAS_AB=["dom","seg","ter","qua","qui","sex","sáb"];
-function diasTxt(a){ const o=[1,2,3,4,5,6,0].filter(d=>a.includes(d)).map(d=>DIAS_AB[d]); return o.length>1 ? o.slice(0,-1).join(", ")+" e "+o[o.length-1] : (o[0]||""); }
+function diasTxt(a){ if(a.length===2 && a.includes(6) && a.includes(0)) return "fim de semana"; const o=[1,2,3,4,5,6,0].filter(d=>a.includes(d)).map(d=>DIAS_AB[d]); return o.length>1 ? o.slice(0,-1).join(", ")+" e "+o[o.length-1] : (o[0]||""); }
 function hojeTem(it){ return !it.dias || !it.dias.length || it.dias.includes(opDay()); }
 function parseDias(t){
   const x=slug(t); if(!x) return null;
@@ -778,7 +784,7 @@ let qt; $("#q").addEventListener("input",e=>{ clearTimeout(qt); qt=setTimeout(()
 $("#menu").addEventListener("click",e=>{
   const ar=e.target.closest(".arr");
   if(ar){ const r=ar.closest("section.cat").querySelector(".items"); r.scrollBy({left:Number(ar.dataset.d)*Math.max(240,r.clientWidth*.85),behavior:matchMedia("(prefers-reduced-motion:reduce)").matches?"auto":"smooth"}); return; }
-  const b=e.target.closest(".item"); if(!b) return; if(b.classList.contains("off")){ const it=ITEMS[b.dataset.id]; toast(b.classList.contains("dia") && it ? `Disponível só ${diasTxt(it.dias)}` : "Item esgotado no momento"); return; } openItem(b.dataset.id); });
+  const b=e.target.closest(".item"); if(!b) return; if(b.classList.contains("off")){ const it=ITEMS[b.dataset.id]; toast(b.classList.contains("dia") && it ? (diasTxt(it.dias)==="fim de semana" ? "Disponível só no fim de semana (sábado e domingo)" : `Disponível só ${diasTxt(it.dias)}`) : "Item esgotado no momento"); return; } openItem(b.dataset.id); });
 
 /* ----- Sheets ----- */
 let openSheet=null;
