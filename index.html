@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-nPma794GdP1HJY6Q8BLJUSbnp9jzjG+2wUelaDf8duY='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-InsaDYQPXXorMl+M/GjdHiwTYkZxTnqm6AbH4M9w32w='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pastello & Cia — Cardápio e Pedidos</title>
@@ -631,7 +631,7 @@ function buildMenu(cats){
       let id=c.id+"--"+slug(o.n), k=2; while(ITEMS[id]) id=c.id+"--"+slug(o.n)+"-"+(k++);
       o.id = id;
       const fix = CONFIG.soEmDias[`${slug(c.t)}/${slug(o.n)}`];
-      if(!o.dias && Array.isArray(fix)) o.dias = fix.filter(d=>d>=0&&d<=6);
+      if(o.dias===undefined && Array.isArray(fix)) o.dias = fix.filter(d=>d>=0&&d<=6);
       ITEMS[o.id] = o; return o;
     });
   });
@@ -1169,7 +1169,7 @@ async function loadSheet(){
       if(!c){ const b=base[slug(cn)]||{}; c={t:cn, sub:b.sub, note:b.note, tag:b.tag||null, g:b.g, items:[]}; map[slug(cn)]=c; cats.push(c); }
       const disp = ai<0 ? "" : slug(r[ai]||"");
       const old = (b=>b && b.items.find(x=>slug(x.n)===slug(nm)))(base[slug(cn)]);
-      c.items.push({n:nm, p:Math.round(p*100)/100, d:di<0?"":(r[di]||"").trim().slice(0,250), ask:qi<0?"":(r[qi]||"").trim().slice(0,60), g: old?old.g:null, off:["nao","n","esgotado","0","false","indisponivel"].includes(disp), dias: parseDias(ai<0?"":r[ai]||"") || (old?old.dias:null)});
+      c.items.push({n:nm, p:Math.round(p*100)/100, d:di<0?"":(r[di]||"").trim().slice(0,250), ask:qi<0?"":(r[qi]||"").trim().slice(0,60), g: old?old.g:null, off:["nao","n","esgotado","0","false","indisponivel"].includes(disp), dias: ai<0 ? (old?old.dias:null) : parseDias(r[ai]||"")});
     });
     if(!cats.length) throw new Error("vazia");
     buildMenu(cats); syncInfo();
