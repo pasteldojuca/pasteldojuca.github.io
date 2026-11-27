@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-LcIF3LIT2KDBz5RaWdRzPdL2HmsUmYdzYD/MpcdRIf0='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-DxNt2XAUu865xYXILU+iO8N/LDL6FOf8ximDKoypCkM='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pastello & Cia — Cardápio e Pedidos</title>
@@ -446,6 +446,11 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
 <div class="toast" id="toast"></div>
 
 <script>
+/* Endereço oficial: o antigo pasteldojuca.github.io (sem o servidor do link do entregador) redireciona */
+if(/\.github\.io$/i.test(location.hostname)){
+  try{ navigator.serviceWorker && navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())); }catch(e){}
+  location.replace("https://pasteldojuca.com.br"+location.pathname.replace(/\/index\.html$/,"/")+location.search+location.hash);
+}
 /* =========================================================
    CONFIGURAÇÃO — edite aqui
    ========================================================= */
