@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-DxNt2XAUu865xYXILU+iO8N/LDL6FOf8ximDKoypCkM='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-J+YqVt1lNOcnI1w0PaGcp+1xnXjhPT2qwlrzd8K+a0g='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pastello & Cia — Cardápio e Pedidos</title>
@@ -169,6 +169,10 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
 .gps{display:flex;align-items:center;gap:10px;width:100%;margin-top:12px;padding:12px 14px;border-radius:11px;border:1px dashed var(--yellow);color:var(--yellow);font-weight:700;text-align:left}
 .gps svg{width:20px;height:20px;flex:none}
 .gps small{display:block;font-weight:500;color:var(--muted);font-size:12.5px}
+.field.loc .gps{margin-top:6px}
+.gps.err{border-style:solid;border-color:var(--red)}
+.linkbtn{display:block;margin-top:8px;padding:4px 0;color:var(--muted);font-size:13px;text-decoration:underline;text-underline-offset:3px;background:none;border:0;text-align:left}
+#locBox input{margin-top:6px}
 .gps.ok{border-style:solid;background:rgba(246,178,26,.08)}
 .gps.busy{opacity:.7;pointer-events:none}
 .install{display:inline-flex;align-items:center;gap:8px;margin-top:14px;padding:9px 16px;border-radius:99px;border:1px solid var(--yellow);color:var(--yellow);font-weight:700;font-size:14px}
@@ -331,7 +335,11 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
         <div class="field"><label>Região de entrega <i class="rq">*</i></label>
           <div class="seg three reg" id="segReg"></div>
         </div>
-        <button type="button" class="gps" id="gpsBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/></svg><span><span id="gpsTxt">Enviar minha localização (GPS)</span><small id="gpsSub">Ajuda o entregador a chegar mais rápido</small></span></button>
+        <div class="field loc"><label>Localização <i class="rq">*</i></label>
+        <button type="button" class="gps" id="gpsBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/></svg><span><span id="gpsTxt">Enviar minha localização (GPS)</span><small id="gpsSub">Obrigatória para entrega · vai para o entregador</small></span></button>
+          <button type="button" class="linkbtn" id="locAlt" aria-expanded="false" aria-controls="locBox">Não consegue usar o GPS? Cole o link da localização</button>
+          <div id="locBox" class="hidden"><input id="fLoc" type="url" inputmode="url" maxlength="400" placeholder="Cole aqui o link do Google Maps" autocomplete="off"><p class="hint">No Google Maps: toque no ponto azul → Compartilhar → Copiar link. No iPhone (Mapas): Compartilhar → Copiar.</p></div>
+        </div>
         <div class="field row">
           <div><label for="fRua">Rua <i class="rq">*</i></label><input id="fRua" maxlength="100" autocomplete="address-line1"></div>
           <div><label for="fNum">Número <i class="rq">*</i></label><input id="fNum" maxlength="12" placeholder="ou S/N"></div>
@@ -912,24 +920,37 @@ function syncTipo(){
 }
 syncTipo();
 
-/* ----- Localização (GPS) ----- */
+/* ----- Localização (GPS ou link colado) — obrigatória para entrega ----- */
 let geo=null;
+const LOC_HOSTS=/^(maps\.app\.goo\.gl|goo\.gl|(www\.)?google\.com(\.br)?|maps\.google\.com(\.br)?|maps\.apple\.com|(www\.)?waze\.com|ul\.waze\.com)$/i;
+function locLink(){
+  const raw=($("#fLoc")||{}).value||""; const m=raw.match(/https?:\/\/[^\s<>"']+/i); if(!m) return "";
+  try{ const u=new URL(m[0]); if(u.protocol!=="https:"&&u.protocol!=="http:") return "";
+    if(!LOC_HOSTS.test(u.hostname)) return "";
+    if(/^(www\.)?google\.com/i.test(u.hostname) && !/^\/maps/.test(u.pathname)) return "";
+    if(/^goo\.gl$/i.test(u.hostname) && !/^\/maps/.test(u.pathname)) return "";
+    u.protocol="https:"; const h=u.href; return h.length<=300 ? h : ""; }catch(e){ return ""; }
+}
+function locURL(){ return geo ? `https://maps.google.com/?q=${geo.lat},${geo.lng}` : locLink(); }
 function setGps(state,txt,sub){
   const b=$("#gpsBtn"); b.classList.toggle("ok",state==="ok"); b.classList.toggle("busy",state==="busy");
   $("#gpsTxt").textContent=txt; $("#gpsSub").textContent=sub;
 }
+function abrirLoc(open){ $("#locBox").classList.toggle("hidden",!open); $("#locAlt").setAttribute("aria-expanded",String(open)); }
+$("#locAlt").onclick=()=>{ const o=$("#locBox").classList.contains("hidden"); abrirLoc(o); if(o) $("#fLoc").focus(); };
+$("#fLoc").addEventListener("input",()=>{ $("#fLoc").classList.remove("err"); if(locLink()) $("#gpsBtn").classList.remove("err"); });
 $("#gpsBtn").onclick=()=>{
-  if(!("geolocation" in navigator)){ setGps("","Seu aparelho não permite localização","Preencha o endereço abaixo"); return; }
+  if(!("geolocation" in navigator)){ setGps("","Seu aparelho não permite localização","Cole o link da sua localização abaixo"); abrirLoc(true); return; }
   setGps("busy","Buscando sua localização…","Aceite o pedido de permissão do navegador");
   navigator.geolocation.getCurrentPosition(p=>{
     geo={lat:p.coords.latitude.toFixed(6), lng:p.coords.longitude.toFixed(6), acc:Math.round(p.coords.accuracy)};
-    setGps("ok","Localização adicionada ✓",`Precisão de ~${geo.acc} m · toque para atualizar`);
+    setGps("ok","Localização adicionada ✓",`Precisão de ~${geo.acc} m · toque para atualizar`); $("#gpsBtn").classList.remove("err");
   },err=>{
     geo=null;
-    const m = err.code===1 ? ["Permissão negada","Libere a localização nas configurações do navegador ou preencha o endereço"]
+    const m = err.code===1 ? ["Permissão negada","Libere a localização nas configurações ou cole o link abaixo"]
             : err.code===3 ? ["Demorou demais","Verifique se o GPS está ligado e tente de novo"]
-            : ["Não foi possível obter a localização","Ligue o GPS e tente de novo, ou preencha o endereço"];
-    setGps("",m[0],m[1]);
+            : ["Não foi possível obter a localização","Ligue o GPS e tente de novo, ou cole o link abaixo"];
+    setGps("",m[0],m[1]); abrirLoc(true);
   },{enableHighAccuracy:true,timeout:15000,maximumAge:60000});
 };
 
@@ -990,6 +1011,12 @@ function validate(){
   ["Nome","Tel","Rua","Num","Bairro"].forEach(k=>$("#f"+k).classList.remove("err"));
   req.forEach(k=>{ const el=$("#f"+k); if(!el.value.trim()){ el.classList.add("err"); ok=false; first=first||el; } });
   if(!ok){ first.focus(); toast("Preencha os campos obrigatórios"); return false; }
+  if(tipo==="entrega" && !locURL()){
+    const b=$("#gpsBtn"); b.classList.add("err"); b.scrollIntoView({block:"center",behavior:"smooth"});
+    if($("#fLoc").value.trim()){ abrirLoc(true); $("#fLoc").classList.add("err"); $("#fLoc").focus({preventScroll:true}); toast("Esse link não é de localização. Use o botão de GPS ou cole o link do Google Maps"); }
+    else { b.focus({preventScroll:true}); toast("Envie sua localização: toque no botão de GPS ou cole o link"); }
+    return false;
+  }
   if(tipo==="entrega" && !telFmt($("#fTel").value)){ $("#fTel").classList.add("err"); $("#fTel").focus(); toast("Confira o telefone, ex.: (75) 99999-9999"); return false; }
   if($("#fLembrar").checked){ const c={tipo,regiao}; ["Nome","Tel","Rua","Num","Bairro","Ref"].forEach(k=>c[k]=$("#f"+k).value.trim()); store.set("cliente",c); }
   else { try{ localStorage.removeItem("pjuca_cliente"); }catch(e){} }
@@ -1023,6 +1050,7 @@ function buildMsg(){
     if(v("Bairro")) m+=`${v("Bairro")}\n`;
     if(v("Ref")) m+=`Ref.: ${v("Ref")}\n`;
     if(geo) m+=`📍 Localização (GPS, ~${geo.acc} m):\nhttps://maps.google.com/?q=${geo.lat},${geo.lng}\n`;
+    else if(locLink()) m+=`📍 Localização (link do cliente):\n${locLink()}\n`;
     m+=`\n`;
   }
   m+=`*Pagamento:* ${pag==="Cartão" && cartao ? "Cartão de "+cartao : pag}`;
@@ -1062,7 +1090,7 @@ function msgEntregador(){
   const reg=CONFIG.regioes[regiao] ? CONFIG.regioes[regiao].nome : "";
   m+=`Endereço: ${[ln1, v("Bairro"), reg].filter(Boolean).join(" · ")}\n`;
   if(v("Ref")) m+=`Ref.: ${v("Ref")}\n`;
-  if(geo) m+=`Localização: https://maps.google.com/?q=${geo.lat},${geo.lng}\n`;
+  if(locURL()) m+=`Localização: ${locURL()}\n`;
   let pg = pag==="Cartão" ? `Cartão de ${cartao||"crédito/débito"} (levar maquininha)` : pag;
   pg += ` · *${brl(total())}*`;
   if(pag==="Dinheiro"){ const t=trocoVal(); pg += t ? ` (troco para ${brl(t)}: levar ${brl(Math.round((t-total())*100)/100)})` : " (sem troco)"; }
@@ -1092,7 +1120,7 @@ function syncAlt(){
 $("#openLegal").onclick=()=>{ $("#legalSheet .sh-body").scrollTop=0; show($("#legalSheet")); };
 $("#wipeData").onclick=()=>{
   try{ Object.keys(localStorage).filter(k=>k.startsWith("pjuca_")).forEach(k=>localStorage.removeItem(k)); }catch(e){}
-  geo=null; setGps("","Enviar minha localização (GPS)","Ajuda o entregador a chegar mais rápido"); regiao=null; renderRegioes(); cart=[]; ["Nome","Rua","Num","Bairro","Ref","Troco","Obs"].forEach(k=>$("#f"+k).value=""); $("#fLembrar").checked=false;
+  geo=null; setGps("","Enviar minha localização (GPS)","Obrigatória para entrega · vai para o entregador"); $("#fLoc").value=""; abrirLoc(false); regiao=null; renderRegioes(); cart=[]; ["Nome","Rua","Num","Bairro","Ref","Troco","Obs"].forEach(k=>$("#f"+k).value=""); $("#fLembrar").checked=false;
   tipo="entrega"; syncTipo(); renderBar(); render($("#q").value);
   toast("Dados apagados deste aparelho");
 };
