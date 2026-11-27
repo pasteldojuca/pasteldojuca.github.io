@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Jmw1kD1ZQKVEZsSxzH56VfD172ipF1IYQFs3jHB41cU='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-LcIF3LIT2KDBz5RaWdRzPdL2HmsUmYdzYD/MpcdRIf0='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pastello & Cia — Cardápio e Pedidos</title>
@@ -1038,12 +1038,15 @@ async function linkEntregador(){
   const t=msgEntregador(); if(t===entregaTxt && entregaURL) return;
   entregaURL=""; entregaTxt="";
   if(!/^https?:$/.test(location.protocol)) return;
-  try{
-    const ctl=new AbortController(), tm=setTimeout(()=>ctl.abort(),3500);
-    const r=await fetch("/api/entrega",{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:t,signal:ctl.signal,cache:"no-store"});
-    clearTimeout(tm);
-    if(r.ok){ const j=await r.json(); if(j && /^[A-Za-z0-9]{10}$/.test(j.id)){ entregaURL=`${location.origin}/e/${j.id}`; entregaTxt=t; } }
-  }catch(e){}
+  for(let tent=0; tent<2 && !entregaURL; tent++){   // 2 tentativas (internet móvel oscila)
+    try{
+      const ctl=new AbortController(), tm=setTimeout(()=>ctl.abort(),6000);
+      const r=await fetch("/api/entrega",{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:t,signal:ctl.signal,cache:"no-store",credentials:"same-origin"});
+      clearTimeout(tm);
+      if(r.ok){ const j=await r.json(); if(j && /^[A-Za-z0-9]{10}$/.test(j.id)){ entregaURL=`${location.origin}/e/${j.id}`; entregaTxt=t; } }
+      else console.warn("Link do entregador: resposta", r.status);
+    }catch(e){ console.warn("Link do entregador: falhou", e && e.name); }
+  }
 }
 /* Versão curta do pedido, para a loja repassar ao entregador sem editar nada */
 function msgEntregador(){

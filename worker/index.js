@@ -16,9 +16,9 @@ const ID_RE = /^[A-Za-z0-9]{10}$/;
 const ABC = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
 
 export default {
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
     const url = new URL(req.url);
-    if (url.pathname === "/api/entrega") return criar(req, env);
+    if (url.pathname === "/api/entrega") return criar(req, env, ctx);
     if (url.pathname.startsWith("/e/")) return abrir(url, env);
 
     const res = await env.ASSETS.fetch(req);
@@ -40,15 +40,17 @@ function novoId() {
 
 const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...SEC } });
 
-async function criar(req, env) {
+async function criar(req, env, ctx) {
   if (req.method !== "POST") return json({ erro: "método" }, 405);
   const origin = req.headers.get("Origin");
   try { if (!origin || !HOSTS.test(new URL(origin).hostname)) return json({ erro: "origem" }, 403); } catch { return json({ erro: "origem" }, 403); }
   if (!env.ENTREGAS) return json({ erro: "indisponível" }, 503);
   if (env.LIMITE) {
-    const ip = req.headers.get("CF-Connecting-IP") || "x";
-    const { success } = await env.LIMITE.limit({ key: "entrega:" + ip });
-    if (!success) return json({ erro: "muitas tentativas" }, 429);
+    try {
+      const ip = req.headers.get("CF-Connecting-IP") || "x";
+      const { success } = await env.LIMITE.limit({ key: "entrega:" + ip });
+      if (!success) return json({ erro: "muitas tentativas" }, 429);
+    } catch {} // se o limitador falhar, segue (o link não pode travar o pedido)
   }
   const raw = await req.text();
   if (raw.length > MAX * 2) return json({ erro: "grande" }, 413);
@@ -56,7 +58,9 @@ async function criar(req, env) {
   const t = raw.replace(/\r/g, "").replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, "").trim().slice(0, MAX);
   if (!t.startsWith("*ENTREGA*")) return json({ erro: "formato" }, 400);
   const id = novoId();
-  await env.ENTREGAS.put(id, t, { expirationTtl: TTL });
+  // grava em segundo plano: responde na hora (o atendente só abre o link minutos depois)
+  const grava = env.ENTREGAS.put(id, t, { expirationTtl: TTL });
+  if (ctx && ctx.waitUntil) ctx.waitUntil(grava); else await grava;
   return json({ id }, 201);
 }
 
