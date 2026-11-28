@@ -2,9 +2,9 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-J+YqVt1lNOcnI1w0PaGcp+1xnXjhPT2qwlrzd8K+a0g='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-aEKZ9pFRDOw7GpNruYwgFGC2XRQeuSjOgB684coq0pg='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Pastello & Cia — Cardápio e Pedidos</title>
 <meta name="description" content="Peça pastéis, coxinhas, churros e hambúrgueres da Pastello & Cia — O Pastel do Juca, em Caldas do Jorro. Pedido direto no WhatsApp.">
 <meta name="theme-color" content="#000000">
@@ -171,8 +171,10 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
 .gps small{display:block;font-weight:500;color:var(--muted);font-size:12.5px}
 .field.loc .gps{margin-top:6px}
 .gps.err{border-style:solid;border-color:var(--red)}
-.linkbtn{display:block;margin-top:8px;padding:4px 0;color:var(--muted);font-size:13px;text-decoration:underline;text-underline-offset:3px;background:none;border:0;text-align:left}
-#locBox input{margin-top:6px}
+.gpshelp{margin-top:8px;padding:11px 13px;border-radius:11px;background:var(--panel2);border:1px solid var(--line);font-size:14px;line-height:1.45}
+.gpshelp b{color:var(--yellow)}
+.gpshelp ol{margin:6px 0 0;padding-left:20px}.gpshelp li{margin:3px 0}
+
 .gps.ok{border-style:solid;background:rgba(246,178,26,.08)}
 .gps.busy{opacity:.7;pointer-events:none}
 .install{display:inline-flex;align-items:center;gap:8px;margin-top:14px;padding:9px 16px;border-radius:99px;border:1px solid var(--yellow);color:var(--yellow);font-weight:700;font-size:14px}
@@ -337,8 +339,7 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
         </div>
         <div class="field loc"><label>Localização <i class="rq">*</i></label>
         <button type="button" class="gps" id="gpsBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/></svg><span><span id="gpsTxt">Enviar minha localização (GPS)</span><small id="gpsSub">Obrigatória para entrega · vai para o entregador</small></span></button>
-          <button type="button" class="linkbtn" id="locAlt" aria-expanded="false" aria-controls="locBox">Não consegue usar o GPS? Cole o link da localização</button>
-          <div id="locBox" class="hidden"><input id="fLoc" type="url" inputmode="url" maxlength="400" placeholder="Cole aqui o link do Google Maps" autocomplete="off"><p class="hint">No Google Maps: toque no ponto azul → Compartilhar → Copiar link. No iPhone (Mapas): Compartilhar → Copiar.</p></div>
+          <div class="gpshelp hidden" id="gpsHelp" role="note" aria-live="polite"></div>
         </div>
         <div class="field row">
           <div><label for="fRua">Rua <i class="rq">*</i></label><input id="fRua" maxlength="100" autocomplete="address-line1"></div>
@@ -920,37 +921,43 @@ function syncTipo(){
 }
 syncTipo();
 
-/* ----- Localização (GPS ou link colado) — obrigatória para entrega ----- */
+/* ----- Localização do aparelho (GPS) — obrigatória para entrega ----- */
 let geo=null;
-const LOC_HOSTS=/^(maps\.app\.goo\.gl|goo\.gl|(www\.)?google\.com(\.br)?|maps\.google\.com(\.br)?|maps\.apple\.com|(www\.)?waze\.com|ul\.waze\.com)$/i;
-function locLink(){
-  const raw=($("#fLoc")||{}).value||""; const m=raw.match(/https?:\/\/[^\s<>"']+/i); if(!m) return "";
-  try{ const u=new URL(m[0]); if(u.protocol!=="https:"&&u.protocol!=="http:") return "";
-    if(!LOC_HOSTS.test(u.hostname)) return "";
-    if(/^(www\.)?google\.com/i.test(u.hostname) && !/^\/maps/.test(u.pathname)) return "";
-    if(/^goo\.gl$/i.test(u.hostname) && !/^\/maps/.test(u.pathname)) return "";
-    u.protocol="https:"; const h=u.href; return h.length<=300 ? h : ""; }catch(e){ return ""; }
-}
-function locURL(){ return geo ? `https://maps.google.com/?q=${geo.lat},${geo.lng}` : locLink(); }
+function locURL(){ return geo ? `https://maps.google.com/?q=${geo.lat},${geo.lng}` : ""; }
 function setGps(state,txt,sub){
   const b=$("#gpsBtn"); b.classList.toggle("ok",state==="ok"); b.classList.toggle("busy",state==="busy");
   $("#gpsTxt").textContent=txt; $("#gpsSub").textContent=sub;
 }
-function abrirLoc(open){ $("#locBox").classList.toggle("hidden",!open); $("#locAlt").setAttribute("aria-expanded",String(open)); }
-$("#locAlt").onclick=()=>{ const o=$("#locBox").classList.contains("hidden"); abrirLoc(o); if(o) $("#fLoc").focus(); };
-$("#fLoc").addEventListener("input",()=>{ $("#fLoc").classList.remove("err"); if(locLink()) $("#gpsBtn").classList.remove("err"); });
+/* Ajuda quando a localização é bloqueada: passos conforme o aparelho e o app onde o site foi aberto */
+function ajudaGps(tipoErro){
+  const ua=navigator.userAgent||"", ios=/iPhone|iPad|iPod/i.test(ua), and=/Android/i.test(ua);
+  const app = /\bGSA\//.test(ua) ? "Google" : /Instagram/i.test(ua) ? "Instagram" : /FBAN|FBAV|FB_IAB/i.test(ua) ? "Facebook" : /WhatsApp/i.test(ua) ? "WhatsApp" : "";
+  const nav = ios ? "Safari" : "Chrome";
+  let h="";
+  if(app) h+=`<p>Você abriu o cardápio pelo app <b>${app}</b>, que costuma bloquear a localização. Toque nos <b>⋯</b> e escolha <b>Abrir no ${nav}</b>, depois toque de novo em "Enviar minha localização".</p>`;
+  if(tipoErro==="negada"||tipoErro==="sem"){
+    if(ios) h+=`<p>${app?"Se continuar bloqueado:":"Para liberar no iPhone:"}</p><ol><li>Abra <b>Ajustes → Privacidade e Segurança → Serviços de Localização</b> e deixe <b>ligado</b>.</li><li>Na mesma tela, toque em <b>${app==="Google"?"Google":"Sites do Safari"}</b> e escolha <b>Durante o Uso</b>.</li><li>Volte aqui e toque em "Enviar minha localização". Se aparecer o aviso, toque em <b>Permitir</b>.</li></ol>`;
+    else if(and) h+=`<p>${app?"Se continuar bloqueado:":"Para liberar no Android:"}</p><ol><li>Puxe a barra de cima do celular e ligue a <b>Localização</b>.</li><li>No ${nav}, toque no <b>cadeado</b> ao lado do endereço do site → <b>Permissões</b> → <b>Localização</b> → <b>Permitir</b>.</li><li>Toque de novo em "Enviar minha localização".</li></ol>`;
+    else h+=`<p>Clique no <b>cadeado</b> ao lado do endereço do site, permita a <b>Localização</b> e clique de novo no botão.</p>`;
+  } else {
+    h+=`<p>Ligue a <b>localização (GPS)</b> do celular, vá para um lugar aberto ou perto da janela e toque de novo no botão.</p>`;
+  }
+  h+=`<p>Prefere não usar a localização? Escolha <b>Retirar no local</b>.</p>`;
+  const el=$("#gpsHelp"); el.innerHTML=h; el.classList.remove("hidden");
+}
 $("#gpsBtn").onclick=()=>{
-  if(!("geolocation" in navigator)){ setGps("","Seu aparelho não permite localização","Cole o link da sua localização abaixo"); abrirLoc(true); return; }
+  $("#gpsHelp").classList.add("hidden");
+  if(!("geolocation" in navigator)){ setGps("","Seu navegador não permite localização","Veja abaixo como resolver"); ajudaGps("sem"); return; }
   setGps("busy","Buscando sua localização…","Aceite o pedido de permissão do navegador");
   navigator.geolocation.getCurrentPosition(p=>{
     geo={lat:p.coords.latitude.toFixed(6), lng:p.coords.longitude.toFixed(6), acc:Math.round(p.coords.accuracy)};
     setGps("ok","Localização adicionada ✓",`Precisão de ~${geo.acc} m · toque para atualizar`); $("#gpsBtn").classList.remove("err");
   },err=>{
     geo=null;
-    const m = err.code===1 ? ["Permissão negada","Libere a localização nas configurações ou cole o link abaixo"]
-            : err.code===3 ? ["Demorou demais","Verifique se o GPS está ligado e tente de novo"]
-            : ["Não foi possível obter a localização","Ligue o GPS e tente de novo, ou cole o link abaixo"];
-    setGps("",m[0],m[1]); abrirLoc(true);
+    const m = err.code===1 ? ["Localização bloqueada","Veja abaixo como liberar · toque para tentar de novo"]
+            : err.code===3 ? ["Demorou demais","Toque para tentar de novo"]
+            : ["Não foi possível obter a localização","Veja abaixo · toque para tentar de novo"];
+    setGps("",m[0],m[1]); ajudaGps(err.code===1?"negada":"falha");
   },{enableHighAccuracy:true,timeout:15000,maximumAge:60000});
 };
 
@@ -1013,8 +1020,7 @@ function validate(){
   if(!ok){ first.focus(); toast("Preencha os campos obrigatórios"); return false; }
   if(tipo==="entrega" && !locURL()){
     const b=$("#gpsBtn"); b.classList.add("err"); b.scrollIntoView({block:"center",behavior:"smooth"});
-    if($("#fLoc").value.trim()){ abrirLoc(true); $("#fLoc").classList.add("err"); $("#fLoc").focus({preventScroll:true}); toast("Esse link não é de localização. Use o botão de GPS ou cole o link do Google Maps"); }
-    else { b.focus({preventScroll:true}); toast("Envie sua localização: toque no botão de GPS ou cole o link"); }
+    b.focus({preventScroll:true}); toast("Toque em \"Enviar minha localização\" para pedir a entrega");
     return false;
   }
   if(tipo==="entrega" && !telFmt($("#fTel").value)){ $("#fTel").classList.add("err"); $("#fTel").focus(); toast("Confira o telefone, ex.: (75) 99999-9999"); return false; }
@@ -1050,7 +1056,6 @@ function buildMsg(){
     if(v("Bairro")) m+=`${v("Bairro")}\n`;
     if(v("Ref")) m+=`Ref.: ${v("Ref")}\n`;
     if(geo) m+=`📍 Localização (GPS, ~${geo.acc} m):\nhttps://maps.google.com/?q=${geo.lat},${geo.lng}\n`;
-    else if(locLink()) m+=`📍 Localização (link do cliente):\n${locLink()}\n`;
     m+=`\n`;
   }
   m+=`*Pagamento:* ${pag==="Cartão" && cartao ? "Cartão de "+cartao : pag}`;
@@ -1120,7 +1125,7 @@ function syncAlt(){
 $("#openLegal").onclick=()=>{ $("#legalSheet .sh-body").scrollTop=0; show($("#legalSheet")); };
 $("#wipeData").onclick=()=>{
   try{ Object.keys(localStorage).filter(k=>k.startsWith("pjuca_")).forEach(k=>localStorage.removeItem(k)); }catch(e){}
-  geo=null; setGps("","Enviar minha localização (GPS)","Obrigatória para entrega · vai para o entregador"); $("#fLoc").value=""; abrirLoc(false); regiao=null; renderRegioes(); cart=[]; ["Nome","Rua","Num","Bairro","Ref","Troco","Obs"].forEach(k=>$("#f"+k).value=""); $("#fLembrar").checked=false;
+  geo=null; setGps("","Enviar minha localização (GPS)","Obrigatória para entrega · vai para o entregador"); $("#gpsHelp").classList.add("hidden"); regiao=null; renderRegioes(); cart=[]; ["Nome","Rua","Num","Bairro","Ref","Troco","Obs"].forEach(k=>$("#f"+k).value=""); $("#fLembrar").checked=false;
   tipo="entrega"; syncTipo(); renderBar(); render($("#q").value);
   toast("Dados apagados deste aparelho");
 };
