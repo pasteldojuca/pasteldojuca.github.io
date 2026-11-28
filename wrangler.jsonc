@@ -7,6 +7,10 @@
     "directory": ".",
     "binding": "ASSETS"
   },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "pasteldojuca-entregas", "database_id": "820633ac-2451-4ca9-b956-6d41166660af" }
+  ],
+  "triggers": { "crons": ["17 * * * *"] },
   "kv_namespaces": [
     { "binding": "ENTREGAS", "id": "ac2dbcac92304f4b9e092874be157ccd" }
   ],

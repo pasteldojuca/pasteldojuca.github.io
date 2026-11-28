@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-mIMR04SdYv2/kbRRpXBTX00V8uB4auKZfUrXIf1lTHo='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-B9gPMFsjmf628m4ffqqPyX5sVh8VeBTUkfqmkLn8gf8='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Pastello & Cia — Cardápio e Pedidos</title>
@@ -175,6 +175,7 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
 .gps.err{border-style:solid;border-color:var(--red)}
 .gpshelp{margin-top:8px;padding:11px 13px;border-radius:11px;background:var(--panel2);border:1px solid var(--line);font-size:14px;line-height:1.45}
 .gpshelp b{color:var(--yellow)}
+.gpshelp a.wa-help{color:var(--yellow);font-weight:700;text-decoration:underline;text-underline-offset:3px}
 .gpshelp ol{margin:6px 0 0;padding-left:20px}.gpshelp li{margin:3px 0}
 
 .gps.ok{border-style:solid;background:rgba(246,178,26,.08)}
@@ -390,7 +391,7 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
     <h4>Onde seus dados ficam</h4>
     <ul>
       <li><strong>No seu aparelho:</strong> o carrinho fica salvo no navegador do seu celular ou computador. Seu nome e endereço só ficam salvos se você marcar "Lembrar meu nome e endereço neste aparelho", para agilizar o próximo pedido. Esses dados não são enviados a nenhum servidor nosso.</li>
-      <li><strong>Link do entregador (só em entregas):</strong> para a loja repassar a entrega sem copiar o pedido inteiro, guardamos no servidor do site (Cloudflare) apenas seu nome, telefone, endereço, localização e forma de pagamento, acessíveis só por um link com código aleatório. Esses dados são apagados automaticamente em até 12 horas. Os itens do pedido não são guardados.</li>
+      <li><strong>Link do entregador (só em entregas):</strong> para a loja repassar a entrega sem copiar o pedido inteiro, guardamos no servidor do site (Cloudflare) apenas seu nome, telefone, endereço, localização e forma de pagamento, acessíveis só por um link com código aleatório. Esses dados são apagados automaticamente em até 24 horas. Os itens do pedido não são guardados.</li>
       <li><strong>No WhatsApp da loja:</strong> ao tocar em "Enviar no WhatsApp", a mensagem com o pedido é enviada por você para a loja. Ela fica no histórico da conversa, como qualquer outra mensagem, e segue as regras de privacidade do próprio WhatsApp.</li>
     </ul>
 
@@ -950,7 +951,7 @@ function ajudaGps(tipoErro){
   } else {
     h+=`<p>Ligue a <b>localização (GPS)</b> do celular, vá para um lugar aberto ou perto da janela e toque de novo no botão.</p>`;
   }
-  h+=`<p>Prefere não usar a localização? Escolha <b>Retirar no local</b>.</p>`;
+  h+=`<p>Prefere não usar a localização? Escolha <b>Retirar no local</b>, ou <a class="wa-help" href="https://wa.me/${CONFIG.whatsappPedidos}?text=${encodeURIComponent("Olá! Quero fazer um pedido para entrega, mas não consegui enviar minha localização pelo cardápio.")}" target="_blank" rel="noopener">fale com a loja pelo WhatsApp</a>.</p>`;
   const el=$("#gpsHelp"); el.innerHTML=h; el.classList.remove("hidden");
 }
 $("#gpsBtn").onclick=()=>{
@@ -1077,7 +1078,7 @@ function buildMsg(){
   m+=`*TOTAL:* ${brl(total())}`;
   return m;
 }
-/* Link curto do entregador: o servidor guarda a mensagem por 12 h e devolve um código.
+/* Link curto do entregador: o servidor guarda a mensagem por 24 h e devolve um código.
    Se falhar (sem internet, servidor fora), o pedido usa o link longo de antes. */
 let entregaURL="", entregaTxt="";
 async function linkEntregador(){
