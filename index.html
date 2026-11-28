@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-aEKZ9pFRDOw7GpNruYwgFGC2XRQeuSjOgB684coq0pg='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-mIMR04SdYv2/kbRRpXBTX00V8uB4auKZfUrXIf1lTHo='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Pastello & Cia — Cardápio e Pedidos</title>
@@ -158,6 +158,8 @@ textarea:focus,.field input:focus,.field select:focus{border-color:var(--yellow)
 .seg button{padding:10px;border-radius:9px;font-weight:700;color:var(--muted)}
 .seg button.on{background:var(--yellow);color:#111}
 .seg.three{grid-template-columns:1fr 1fr 1fr}
+.seg.four{grid-template-columns:repeat(4,1fr)}
+.seg.four button small{display:block;font-size:11px;font-weight:600;opacity:.8;margin-top:1px}
 .seg.reg button{display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.2;padding:9px 4px}
 .seg.reg button small{font-size:12.5px;font-weight:600;opacity:.8}
 .seg.err{border-color:var(--yellow);box-shadow:0 0 0 1px var(--yellow)}
@@ -323,6 +325,7 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
       <div id="lines"></div>
       <div class="tot"><span>Subtotal</span><span id="sub1"></span></div>
       <div class="tot"><span>Taxa de entrega</span><span id="fee1"></span></div>
+      <div class="tot hidden" id="vrRow"><span>Taxa do VR</span><span id="vr1"></span></div>
       <div class="tot big"><span>Total</span><span id="tot1"></span></div>
     </div>
     <!-- step 2 -->
@@ -350,7 +353,8 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
       </div>
       <div id="pickBox" class="hint hidden">Retirada na Rua Lourildo Barreto, 419–485 — Caldas do Jorro.</div>
       <div class="field"><label>Forma de pagamento</label>
-        <div class="seg three" id="segPag"><button type="button" data-v="Pix" class="on">Pix</button><button type="button" data-v="Cartão">Cartão</button><button type="button" data-v="Dinheiro">Dinheiro</button></div>
+        <div class="seg four" id="segPag"><button type="button" data-v="Pix" class="on">Pix</button><button type="button" data-v="Cartão">Cartão</button><button type="button" data-v="Dinheiro">Dinheiro</button><button type="button" data-v="VR">VR<small id="vrSmall">+ R$ 2,00</small></button></div>
+        <p class="hint hidden" id="vrHint">Vale-refeição (VR): taxa de <b id="vrTaxa">R$ 2,00</b>, já somada ao total. A loja leva a maquininha.</p>
         <p class="hint">O pagamento é combinado direto com a loja pelo WhatsApp.</p>
       </div>
       <div class="field hidden" id="cartaoBox"><label id="lblCartao">Crédito ou débito? <i class="rq">*</i></label>
@@ -403,7 +407,7 @@ pre.msg{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--lin
     <ul>
       <li>O site é um catálogo. O pedido só está confirmado quando a loja responder pelo WhatsApp.</li>
       <li>Preços, itens e disponibilidade podem mudar sem aviso. Em caso de diferença, vale o que a loja confirmar.</li>
-      <li>A taxa de entrega é calculada pela região escolhida no pedido (<span data-k="taxas">Caldas do Jorro R$ 3,00; Jorrinho e Tucano R$ 6,00</span>). O pagamento é combinado diretamente com a loja; nenhum pagamento é feito pelo site.</li>
+      <li>A taxa de entrega é calculada pela região escolhida no pedido (<span data-k="taxas">Caldas do Jorro R$ 3,00; Jorrinho e Tucano R$ 6,00</span>). Pagamento com vale-refeição (VR) tem taxa de <span data-k="taxaVR">R$ 2,00</span>. O pagamento é combinado diretamente com a loja; nenhum pagamento é feito pelo site.</li>
       <li>Entregas em Caldas do Jorro e região, <span data-k="horario-termos">das 18h30 às 00h30, todos os dias exceto às terças</span>.</li>
       <li>Pedidos enviados fora do horário são respondidos quando a loja abrir.</li>
     </ul>
@@ -476,6 +480,7 @@ const CONFIG = {
     { nome: "Jorrinho",        taxa: 6 },
     { nome: "Tucano",          taxa: 6 }
   ],
+  taxaVR: 2,                           // taxa para pagamento com vale-refeição (VR)
   abre: "18:30", fecha: "00:30",       // horário do delivery
   diaFechado: 2,                       // 0=dom, 1=seg, 2=ter…
   fuso: "America/Bahia",
@@ -703,6 +708,7 @@ function syncInfo(){
   set("horario-curto",`Delivery ${ab} às ${fe} · fechado ${fd}`);
   set("horario-longo",`Aberto todos os dias, exceto ${fd} · Delivery das ${ab} às ${fe}`);
   set("horario-termos",`das ${ab} às ${fe}, todos os dias exceto ${fd}`);
+  set("taxaVR", brl(CONFIG.taxaVR)); $("#vrSmall").textContent="+ "+brl(CONFIG.taxaVR); $("#vrTaxa").textContent=brl(CONFIG.taxaVR);
   set("taxas", CONFIG.regioes.map(r=>`${r.nome} ${r.taxa?brl(r.taxa):"grátis"}`).join("; "));
   set("tels",tels); set("tel-main",fmtTel(CONFIG.whatsappPedidos));
 }
@@ -880,7 +886,8 @@ function feeTxt(){
   if(feePending()){ const m=Math.min(...CONFIG.regioes.map(r=>r.taxa)); return `a partir de ${brl(m)}`; }
   const t=feeVal(); return t ? brl(t) : "grátis";
 }
-function total(){ return subtotal() + feeVal(); }
+const vrVal = () => pag==="VR" ? (Number(CONFIG.taxaVR)||0) : 0;
+function total(){ return subtotal() + feeVal() + vrVal(); }
 function renderRegioes(){
   $("#segReg").innerHTML = CONFIG.regioes.map((r,i)=>`<button type="button" data-v="${i}" class="${i===regiao?"on":""}">${esc(r.nome)}<small>${r.taxa?brl(r.taxa):"grátis"}</small></button>`).join("");
 }
@@ -891,6 +898,7 @@ function renderLines(){
     <div class="r"><strong>${brl((it.p+l.add)*l.q)}</strong><div class="qty"><button data-a="-" data-i="${i}" aria-label="Menos">${ICON_MINUS}</button><span>${l.q}</span><button data-a="+" data-i="${i}" aria-label="Mais">${ICON_PLUS}</button></div></div></div>`;
   }).join("");
   $("#sub1").textContent=brl(subtotal()); $("#fee1").textContent=feeTxt(); $("#tot1").textContent=brl(total()) + (feePending()?" + taxa":"");
+  $("#vrRow").classList.toggle("hidden",!vrVal()); $("#vr1").textContent=brl(vrVal());
   if(step===1) foot();
 }
 $("#lines").addEventListener("click",e=>{
@@ -913,7 +921,7 @@ function seg(el,cb){ el.addEventListener("click",e=>{ const b=e.target.closest("
 seg($("#segTipo"),v=>{ tipo=v; syncTipo(); updSub(); });
 seg($("#segReg"),v=>{ regiao=+v; $("#segReg").classList.remove("err"); updSub(); });
 function updSub(){ if(step===2) $("#ckSub").textContent=`Total: ${brl(total())}${feePending()?" + taxa de entrega":""}`; }
-seg($("#segPag"),v=>{ pag=v; $("#trocoBox").classList.toggle("hidden",v!=="Dinheiro"); $("#cartaoBox").classList.toggle("hidden",v!=="Cartão"); });
+seg($("#segPag"),v=>{ pag=v; $("#trocoBox").classList.toggle("hidden",v!=="Dinheiro"); $("#cartaoBox").classList.toggle("hidden",v!=="Cartão"); $("#vrHint").classList.toggle("hidden",v!=="VR"); updSub(); renderLines(); });
 seg($("#segCartao"),v=>{ cartao=v; $("#segCartao").classList.remove("err"); });
 function syncTipo(){
   $("#segTipo").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x.dataset.v===tipo));
@@ -1058,13 +1066,14 @@ function buildMsg(){
     if(geo) m+=`📍 Localização (GPS, ~${geo.acc} m):\nhttps://maps.google.com/?q=${geo.lat},${geo.lng}\n`;
     m+=`\n`;
   }
-  m+=`*Pagamento:* ${pag==="Cartão" && cartao ? "Cartão de "+cartao : pag}`;
+  m+=`*Pagamento:* ${pag==="Cartão" && cartao ? "Cartão de "+cartao : pag==="VR" ? "VR (vale-refeição)" : pag}`;
   if(pag==="Dinheiro"){ const t=trocoVal(); m+= t?` (troco para ${brl(t)})`:" (sem troco)"; }
   m+=`\n`;
   if(v("Obs")) m+=`*Observações:* ${v("Obs")}\n`;
   if(tipo==="entrega") m+=`\n*PARA O ENTREGADOR* (uso da loja)\nToque no link, escolha o entregador e envie:\n${entregaURL || "https://wa.me/?text="+encodeURIComponent(msgEntregador())}\n`;
   m+=`\n━━━━━━━━━━━━\n*Subtotal:* ${brl(subtotal())}\n`;
   if(tipo==="entrega") m+=`*Taxa de entrega:* ${feeTxt()}\n`;
+  if(vrVal()) m+=`*Taxa do VR:* ${brl(vrVal())}\n`;
   m+=`*TOTAL:* ${brl(total())}`;
   return m;
 }
@@ -1096,7 +1105,7 @@ function msgEntregador(){
   m+=`Endereço: ${[ln1, v("Bairro"), reg].filter(Boolean).join(" · ")}\n`;
   if(v("Ref")) m+=`Ref.: ${v("Ref")}\n`;
   if(locURL()) m+=`Localização: ${locURL()}\n`;
-  let pg = pag==="Cartão" ? `Cartão de ${cartao||"crédito/débito"} (levar maquininha)` : pag;
+  let pg = pag==="Cartão" ? `Cartão de ${cartao||"crédito/débito"} (levar maquininha)` : pag==="VR" ? "VR - vale-refeição (levar maquininha)" : pag;
   pg += ` · *${brl(total())}*`;
   if(pag==="Dinheiro"){ const t=trocoVal(); pg += t ? ` (troco para ${brl(t)}: levar ${brl(Math.round((t-total())*100)/100)})` : " (sem troco)"; }
   m+=`Pagamento: ${pg}`;
